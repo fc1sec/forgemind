@@ -130,8 +130,6 @@ dmypy.json
 *~
 .DS_Store
 
-# Project-specific
+# ForgeMind workspace
 forgemind_projects/
 forgemind_outputs/
-outputs/
-*.md~
