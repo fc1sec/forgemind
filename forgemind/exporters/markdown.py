@@ -2,6 +2,13 @@
 
 from pathlib import Path
 
+from forgemind.generators import (
+    generate_ai_risk_checklist,
+    generate_context,
+    generate_issue_template,
+    generate_pr_template,
+    generate_tool_permission_matrix,
+)
 from forgemind.schemas.project import ProjectAnalysis
 
 
@@ -320,5 +327,26 @@ This output is a readiness aid, not a certification or compliance guarantee.
 5. Proceed to execution with discipline
 """
     (output_dir / "README_OUTPUT_INDEX.md").write_text(readme)
+
+    # 13-17. v1.1 Generator Outputs (new features)
+    # Context file (.context.md)
+    context_output = generate_context(analysis)
+    (output_dir / f"{analysis.metadata.slug}.context.md").write_text(context_output)
+
+    # AI Risk Readiness Checklist
+    ai_checklist_output = generate_ai_risk_checklist(analysis)
+    (output_dir / "AI_RISK_CHECKLIST.md").write_text(ai_checklist_output)
+
+    # Tool Permission Matrix
+    tool_matrix_output = generate_tool_permission_matrix(analysis)
+    (output_dir / "TOOL_PERMISSION_MATRIX.md").write_text(tool_matrix_output)
+
+    # PR Template
+    pr_template_output = generate_pr_template(analysis)
+    (output_dir / "AGENT_PR_TEMPLATE.md").write_text(pr_template_output)
+
+    # Issue Template
+    issue_template_output = generate_issue_template(analysis)
+    (output_dir / "AGENT_ISSUE_TEMPLATE.md").write_text(issue_template_output)
 
     return output_dir

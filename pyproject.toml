@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "forgemind"
-version = "1.0.0"
-description = "ForgeMind: MethodOps engine for AI-assisted project execution readiness"
+version = "1.1.0"
+description = "ForgeMind: Context engineering and readiness layer for AI agents and teams"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
