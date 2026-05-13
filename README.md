@@ -52,15 +52,56 @@ ForgeMind is inspired by:
 
 ## Installation
 
+### From source (recommended for v1.0.0)
+
+```bash
+git clone https://github.com/fc1sec/forgemind.git
+cd forgemind
+pip install -e ".[dev]"
+```
+
+### From PyPI (when available)
+
 ```bash
 pip install forgemind
 ```
 
-Or install with development dependencies:
+---
+
+## Status
+
+| Badge | Info |
+|-------|------|
+| **Version** | v1.0.0 (Foundation Release) |
+| **Maturity** | Beta — Ready for early adopters |
+| **Python** | 3.9+ |
+| **License** | MIT |
+| **CI/CD** | Tests + Linting required |
+
+---
+
+## Demo (60 seconds)
 
 ```bash
-pip install -e ".[dev]"
+# 1. Initialize workspace
+forgemind init
+
+# 2. Analyze a project
+forgemind intake forgemind_projects/sample_ai_project.md
+
+# 3. Check readiness
+forgemind diagnose forgemind_projects/sample_ai_project.md
+
+# Output: 12 analysis documents in forgemind_outputs/sample-ai-project/
 ```
+
+**Sample output preview:**
+- `PROJECT_CHARTER.md` — Objective, scope, constraints
+- `RISK_REGISTER.md` — Threats, impact, mitigation, owners
+- `ASSUMPTION_LOG.md` — Bets, validation criteria
+- `ACCEPTANCE_CRITERIA.md` — Definition of done
+- `CONTROL_PLAN.md` — Prevent drift, maintain scope
+- + 7 more methodology lenses and governance documents
 
 ---
 
@@ -263,6 +304,25 @@ This output is a readiness aid, not a certification or compliance guarantee.
 
 ---
 
+## When to Use ForgeMind
+
+✅ **Use ForgeMind when:**
+- You're handing work to an AI agent or team (need clarity before execution)
+- You've shipped things you shouldn't have (want upfront rigor)
+- You face analysis paralysis (need structure to move forward)
+- You need audit-ready documentation (compliance-sensitive work)
+- You want to prevent scope creep (control during execution)
+- You're designing processes (operations, QMS, ERP)
+
+❌ **Don't use ForgeMind for:**
+- Tactical/daily firefighting (this is strategic)
+- Replacing domain expertise (you still need that)
+- Automated compliance certification (it's a readiness aid)
+- Projects where requirements are already crystal clear
+- Real-time operational decisions (analysis, not runtime)
+
+---
+
 ## Use Cases
 
 ### 🤖 AI Project Readiness
@@ -410,6 +470,7 @@ For issues, feature requests, or feedback:
 
 ---
 
-**Built with:** Python 3.11+, Typer, Pydantic, Jinja2, Rich  
+**Built with:** Python 3.9+, Typer, Pydantic, Jinja2, Rich  
 **Inspired by:** RDMAICSI, Peter Senge, Lean, Six Sigma, ISO/QMS  
-**Philosophy:** Structure work rigorously before execution.
+**Philosophy:** Structure work rigorously before execution.  
+**Status:** v1.0.0 foundation release • Beta maturity • Looking for early adopters
