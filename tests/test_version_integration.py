@@ -1,16 +1,17 @@
 """Tests for version checking integration with CLI."""
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
 from forgemind.cli.version import (
-    get_installed_version,
-    get_latest_version,
-    should_update,
-    is_breaking_change,
     check_version_availability,
+    get_installed_version,
+    is_breaking_change,
     should_check_version,
+    should_update,
 )
-from forgemind.version import __version__, COMPATIBILITY, BREAKING_CHANGES
+from forgemind.version import BREAKING_CHANGES, COMPATIBILITY, __version__
 
 
 class TestVersionDetection:

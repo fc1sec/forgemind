@@ -7,7 +7,8 @@ Enables ForgeMind to:
 3. Instantiate patterns on demand
 """
 
-from typing import Dict, Type, List, Optional
+from typing import Optional
+
 from .reverse_state_pattern import ReverseStatePattern
 
 
@@ -26,9 +27,9 @@ class PluginRegistry:
 
     def __init__(self):
         """Initialize empty registry."""
-        self._patterns: Dict[str, Type[ReverseStatePattern]] = {}
+        self._patterns: dict[str, type[ReverseStatePattern]] = {}
 
-    def register(self, pattern_class: Type[ReverseStatePattern]) -> None:
+    def register(self, pattern_class: type[ReverseStatePattern]) -> None:
         """
         Register a reverse state pattern.
 
@@ -65,11 +66,11 @@ class PluginRegistry:
             return None
         return self._patterns[domain]()
 
-    def list_supported_domains(self) -> List[str]:
+    def list_supported_domains(self) -> list[str]:
         """Return list of all supported domains."""
-        return sorted(list(self._patterns.keys()))
+        return sorted(self._patterns.keys())
 
-    def get_pattern_metadata(self, domain: str) -> Optional[Dict]:
+    def get_pattern_metadata(self, domain: str) -> Optional[dict]:
         """Get metadata about a pattern without instantiating it."""
         if domain not in self._patterns:
             return None
@@ -81,7 +82,7 @@ class PluginRegistry:
             "description": pattern_class.description,
         }
 
-    def list_all_metadata(self) -> List[Dict]:
+    def list_all_metadata(self) -> list[dict]:
         """Get metadata for all registered patterns."""
         return [
             self.get_pattern_metadata(domain)
@@ -116,9 +117,9 @@ def register_builtin_patterns():
     registry = get_plugin_registry()
 
     # Import here to avoid circular dependencies
+    from .ai_ml_pattern import AIMLReversePattern
     from .iso9001_pattern import ISO9001ReversePattern
     from .software_pattern import SoftwareReversePattern
-    from .ai_ml_pattern import AIMLReversePattern
 
     registry.register(ISO9001ReversePattern)
     registry.register(SoftwareReversePattern)

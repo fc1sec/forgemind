@@ -4,14 +4,16 @@ Software Engineering Reverse State Pattern
 Generic patterns for reverting software changes: Git, deployment, database migrations.
 """
 
-from typing import Dict, List, Optional, Any
-from .reverse_state_pattern import (
-    ReverseStatePattern,
-    ReverseStateDefinition,
-    ReverseStep,
-    ReversalPlan,
-)
+from typing import Any, Optional
+
 from forgemind.schemas.project import ProjectAnalysis
+
+from .reverse_state_pattern import (
+    ReversalPlan,
+    ReverseStateDefinition,
+    ReverseStatePattern,
+    ReverseStep,
+)
 
 
 class SoftwareReversePattern(ReverseStatePattern):
@@ -52,7 +54,7 @@ class SoftwareReversePattern(ReverseStatePattern):
         },
     }
 
-    def get_supported_states(self) -> List[ReverseStateDefinition]:
+    def get_supported_states(self) -> list[ReverseStateDefinition]:
         """Return software development states."""
         definitions = []
         for state_name, config in self.STATE_MACHINE.items():
@@ -66,7 +68,7 @@ class SoftwareReversePattern(ReverseStatePattern):
             )
         return definitions
 
-    def validate_state_transition(self, from_state: str, to_state: str) -> Dict[str, Any]:
+    def validate_state_transition(self, from_state: str, to_state: str) -> dict[str, Any]:
         """Check if state transition is valid."""
         if from_state not in self.STATE_MACHINE:
             return {"is_valid": False, "reason": f"Unknown state: {from_state}"}
@@ -129,7 +131,7 @@ class SoftwareReversePattern(ReverseStatePattern):
             confidence=0.90,
         )
 
-    def _steps_review_to_dev(self) -> List[ReverseStep]:
+    def _steps_review_to_dev(self) -> list[ReverseStep]:
         """Revert from code review to development."""
         return [
             ReverseStep(
@@ -146,7 +148,7 @@ class SoftwareReversePattern(ReverseStatePattern):
             ),
         ]
 
-    def _steps_merged_to_review(self) -> List[ReverseStep]:
+    def _steps_merged_to_review(self) -> list[ReverseStep]:
         """Revert merged code via git revert."""
         return [
             ReverseStep(
@@ -170,7 +172,7 @@ class SoftwareReversePattern(ReverseStatePattern):
             ),
         ]
 
-    def _steps_staging_to_review(self) -> List[ReverseStep]:
+    def _steps_staging_to_review(self) -> list[ReverseStep]:
         """Revert from staging."""
         return [
             ReverseStep(
@@ -188,7 +190,7 @@ class SoftwareReversePattern(ReverseStatePattern):
             ),
         ]
 
-    def _steps_prod_to_staging(self) -> List[ReverseStep]:
+    def _steps_prod_to_staging(self) -> list[ReverseStep]:
         """Revert from production (blue-green deployment)."""
         return [
             ReverseStep(
@@ -222,7 +224,7 @@ class SoftwareReversePattern(ReverseStatePattern):
             ),
         ]
 
-    def _get_dependencies(self, current_state: str) -> List[str]:
+    def _get_dependencies(self, current_state: str) -> list[str]:
         """Get dependencies for reversal."""
         deps = ["Git repository with commit history"]
         if current_state == "Production":
@@ -235,7 +237,7 @@ class SoftwareReversePattern(ReverseStatePattern):
             deps.append("Database backup before migration")
         return deps
 
-    def _get_constraints(self, current_state: str) -> List[str]:
+    def _get_constraints(self, current_state: str) -> list[str]:
         """Get constraints for reversal."""
         constraints = []
         if current_state == "Production":

@@ -4,14 +4,16 @@ AI/ML Reverse State Pattern
 Patterns for reverting model deployments, feature flags, and checkpoints.
 """
 
-from typing import Dict, List, Optional, Any
-from .reverse_state_pattern import (
-    ReverseStatePattern,
-    ReverseStateDefinition,
-    ReverseStep,
-    ReversalPlan,
-)
+from typing import Any, Optional
+
 from forgemind.schemas.project import ProjectAnalysis
+
+from .reverse_state_pattern import (
+    ReversalPlan,
+    ReverseStateDefinition,
+    ReverseStatePattern,
+    ReverseStep,
+)
 
 
 class AIMLReversePattern(ReverseStatePattern):
@@ -47,7 +49,7 @@ class AIMLReversePattern(ReverseStatePattern):
         },
     }
 
-    def get_supported_states(self) -> List[ReverseStateDefinition]:
+    def get_supported_states(self) -> list[ReverseStateDefinition]:
         """Return AI/ML deployment states."""
         definitions = []
         for state_name, config in self.STATE_MACHINE.items():
@@ -61,7 +63,7 @@ class AIMLReversePattern(ReverseStatePattern):
             )
         return definitions
 
-    def validate_state_transition(self, from_state: str, to_state: str) -> Dict[str, Any]:
+    def validate_state_transition(self, from_state: str, to_state: str) -> dict[str, Any]:
         """Check if state transition is valid."""
         if from_state not in self.STATE_MACHINE:
             return {"is_valid": False, "reason": f"Unknown state: {from_state}"}
@@ -122,7 +124,7 @@ class AIMLReversePattern(ReverseStatePattern):
             confidence=0.85,  # Slightly lower due to model-specific unknowns
         )
 
-    def _steps_validation_to_training(self) -> List[ReverseStep]:
+    def _steps_validation_to_training(self) -> list[ReverseStep]:
         """Revert from validation back to retraining."""
         return [
             ReverseStep(
@@ -145,7 +147,7 @@ class AIMLReversePattern(ReverseStatePattern):
             ),
         ]
 
-    def _steps_canary_to_validation(self) -> List[ReverseStep]:
+    def _steps_canary_to_validation(self) -> list[ReverseStep]:
         """Revert from canary deployment."""
         return [
             ReverseStep(
@@ -174,7 +176,7 @@ class AIMLReversePattern(ReverseStatePattern):
             ),
         ]
 
-    def _steps_prod_to_canary(self) -> List[ReverseStep]:
+    def _steps_prod_to_canary(self) -> list[ReverseStep]:
         """Revert from production deployment."""
         return [
             ReverseStep(
@@ -206,7 +208,7 @@ class AIMLReversePattern(ReverseStatePattern):
             ),
         ]
 
-    def _get_dependencies(self, current_state: str) -> List[str]:
+    def _get_dependencies(self, current_state: str) -> list[str]:
         """Get dependencies for reversal."""
         deps = [
             "Model versioning system (MLflow, Weights & Biases, etc.)",
@@ -223,7 +225,7 @@ class AIMLReversePattern(ReverseStatePattern):
 
         return deps
 
-    def _get_constraints(self, current_state: str) -> List[str]:
+    def _get_constraints(self, current_state: str) -> list[str]:
         """Get constraints for reversal."""
         constraints = []
 

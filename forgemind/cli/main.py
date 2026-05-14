@@ -1,7 +1,6 @@
 """ForgeMind CLI using Typer."""
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -162,7 +161,7 @@ def intake(
         # Check file exists first
         project_path = Path(project_file)
         if not project_path.exists():
-            console.print(f"[red]✗ Project file not found[/red]")
+            console.print("[red]✗ Project file not found[/red]")
             console.print(f"[dim]Looking for: {project_path.resolve()}[/dim]\n")
             console.print("[bold]Check:[/bold]")
             console.print("  1. File path is correct")
@@ -244,7 +243,7 @@ def intake(
         raise typer.Exit(1)
 
     except Exception as e:
-        console.print(f"[red]✗ Analysis failed[/red]")
+        console.print("[red]✗ Analysis failed[/red]")
         console.print(f"[dim]Error: {str(e)}[/dim]\n")
         console.print("[bold]Next steps:[/bold]")
         console.print("  1. Check project format: [cyan]docs/FIRST_TIME_USER_GUIDE.md[/cyan] (Step 4)")

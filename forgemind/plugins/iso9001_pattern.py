@@ -10,14 +10,16 @@ Document lifecycle in typical ISO 9001 implementations:
 Draft → Under Review → Approved → Signed → [Obsolete if changed]
 """
 
-from typing import Dict, List, Optional, Any
-from .reverse_state_pattern import (
-    ReverseStatePattern,
-    ReverseStateDefinition,
-    ReverseStep,
-    ReversalPlan,
-)
+from typing import Any, Optional
+
 from forgemind.schemas.project import ProjectAnalysis
+
+from .reverse_state_pattern import (
+    ReversalPlan,
+    ReverseStateDefinition,
+    ReverseStatePattern,
+    ReverseStep,
+)
 
 
 class ISO9001ReversePattern(ReverseStatePattern):
@@ -75,7 +77,7 @@ class ISO9001ReversePattern(ReverseStatePattern):
         },
     }
 
-    def get_supported_states(self) -> List[ReverseStateDefinition]:
+    def get_supported_states(self) -> list[ReverseStateDefinition]:
         """Return all states in ISO 9001 document lifecycle."""
         definitions = []
         for state_name, config in self.STATE_MACHINE.items():
@@ -92,7 +94,7 @@ class ISO9001ReversePattern(ReverseStatePattern):
             )
         return definitions
 
-    def validate_state_transition(self, from_state: str, to_state: str) -> Dict[str, Any]:
+    def validate_state_transition(self, from_state: str, to_state: str) -> dict[str, Any]:
         """Check if a state transition is valid per ISO 9001."""
         if from_state not in self.STATE_MACHINE:
             return {"is_valid": False, "reason": f"Unknown source state: {from_state}"}
@@ -181,7 +183,7 @@ class ISO9001ReversePattern(ReverseStatePattern):
 
     # Internal helper methods
 
-    def _steps_under_review_to_draft(self, project: ProjectAnalysis) -> List[ReverseStep]:
+    def _steps_under_review_to_draft(self, project: ProjectAnalysis) -> list[ReverseStep]:
         """Steps to revert from 'Under Review' back to 'Draft'."""
         return [
             ReverseStep(
@@ -217,7 +219,7 @@ class ISO9001ReversePattern(ReverseStatePattern):
             ),
         ]
 
-    def _steps_approved_to_under_review(self, project: ProjectAnalysis) -> List[ReverseStep]:
+    def _steps_approved_to_under_review(self, project: ProjectAnalysis) -> list[ReverseStep]:
         """Steps to revert from 'Approved' back to 'Under Review'."""
         return [
             ReverseStep(
@@ -262,7 +264,7 @@ class ISO9001ReversePattern(ReverseStatePattern):
             ),
         ]
 
-    def _steps_signed_to_approved(self, project: ProjectAnalysis) -> List[ReverseStep]:
+    def _steps_signed_to_approved(self, project: ProjectAnalysis) -> list[ReverseStep]:
         """
         Steps to handle 'Signed' reversal (typically NOT PERMITTED per ISO).
         Included for completeness but should raise error in validate_state_transition.
@@ -291,7 +293,7 @@ class ISO9001ReversePattern(ReverseStatePattern):
         """Build readable path description for reversal."""
         return f"{from_state} → {to_state}"
 
-    def _get_dependencies(self, current_state: str) -> List[str]:
+    def _get_dependencies(self, current_state: str) -> list[str]:
         """Get any dependencies for reversal from this state."""
         if current_state == "Approved":
             return [
@@ -306,7 +308,7 @@ class ISO9001ReversePattern(ReverseStatePattern):
             ]
         return []
 
-    def _get_constraints(self, current_state: str) -> List[str]:
+    def _get_constraints(self, current_state: str) -> list[str]:
         """Get regulatory/policy constraints for this reversal."""
         constraints = [
             "All reversals must be documented in audit trail per §8.5.2",

@@ -6,8 +6,8 @@ how to safely reverse process states based on domain-specific constraints and re
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Optional
 
 from forgemind.schemas.project import ProjectAnalysis
 
@@ -37,7 +37,7 @@ class ReverseStateDefinition:
         - mitigation: "Issue new approved version + obsolete old"
     """
     state_name: str
-    can_revert_to: List[str]
+    can_revert_to: list[str]
     reversible: bool
     reason: Optional[str] = None
     mitigation: Optional[str] = None
@@ -51,12 +51,12 @@ class ReversalPlan:
     current_state: str
     target_state: str
     rollback_path: str  # e.g., "Approved → Under Review → Draft"
-    steps: List[ReverseStep]
+    steps: list[ReverseStep]
     total_estimated_time_minutes: int
     highest_data_loss_risk: str
-    approval_gates: List[str]
-    dependencies: List[str]
-    constraints: List[str]
+    approval_gates: list[str]
+    dependencies: list[str]
+    constraints: list[str]
     confidence: float  # 0.0-1.0: how certain is this reversible?
 
 
@@ -77,7 +77,7 @@ class ReverseStatePattern(ABC):
     description: str
 
     @abstractmethod
-    def get_supported_states(self) -> List[ReverseStateDefinition]:
+    def get_supported_states(self) -> list[ReverseStateDefinition]:
         """
         Return all states this domain supports and their reversal rules.
 
@@ -112,7 +112,7 @@ class ReverseStatePattern(ABC):
     @abstractmethod
     def validate_state_transition(
         self, from_state: str, to_state: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Check if a state transition is valid in this domain.
 
@@ -133,7 +133,7 @@ class ReverseStatePattern(ABC):
             f"## Reversal Plan: {reversal_plan.current_state} → {reversal_plan.target_state}",
             f"\n**Framework:** {self.framework}",
             f"\n**Rollback Path:** `{reversal_plan.rollback_path}`",
-            f"\n### Steps\n",
+            "\n### Steps\n",
         ]
 
         for step in reversal_plan.steps:
@@ -154,19 +154,19 @@ class ReverseStatePattern(ABC):
                 lines.append(f"   - ⚠️ Data loss risk: {step.data_loss_risk}")
 
         lines.extend([
-            f"\n### Summary",
+            "\n### Summary",
             f"- **Total Time:** ~{reversal_plan.total_estimated_time_minutes} minutes",
             f"- **Data Loss Risk:** {reversal_plan.highest_data_loss_risk}",
             f"- **Approval Gates:** {', '.join(reversal_plan.approval_gates) or 'None'}",
         ])
 
         if reversal_plan.constraints:
-            lines.append(f"\n### Constraints")
+            lines.append("\n### Constraints")
             for constraint in reversal_plan.constraints:
                 lines.append(f"- {constraint}")
 
         if reversal_plan.dependencies:
-            lines.append(f"\n### Dependencies")
+            lines.append("\n### Dependencies")
             for dep in reversal_plan.dependencies:
                 lines.append(f"- {dep}")
 

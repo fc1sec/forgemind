@@ -9,12 +9,12 @@ Critical tests:
 """
 
 import pytest
+
+from forgemind.epistemics import EpistemicValidator, OutputClassification
 from forgemind.plugins import PluginRegistry
 from forgemind.plugins.iso9001_pattern import ISO9001ReversePattern
 from forgemind.plugins.software_pattern import SoftwareReversePattern
-from forgemind.plugins.ai_ml_pattern import AIMLReversePattern
-from forgemind.epistemics import EpistemicValidator, OutputClassification
-from forgemind.schemas.project import ProjectAnalysis, ProjectMetadata, ProjectInput
+from forgemind.schemas.project import ProjectAnalysis, ProjectInput, ProjectMetadata
 
 
 class TestPluginRegistry:

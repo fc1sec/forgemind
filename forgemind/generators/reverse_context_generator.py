@@ -1,9 +1,9 @@
 """Generate reversal/rollback plans using domain-specific plugins (v1.2.0)."""
 
+from forgemind.epistemics import EpistemicValidator
 from forgemind.generators.base import BaseGenerator
-from forgemind.schemas.project import ProjectAnalysis
 from forgemind.plugins import get_plugin_registry
-from forgemind.epistemics import EpistemicValidator, OutputClassification
+from forgemind.schemas.project import ProjectAnalysis
 
 
 class ReverseContextGenerator(BaseGenerator):
@@ -157,7 +157,7 @@ class ReverseContextGenerator(BaseGenerator):
         else:
             plan = data["reversal_plan"]
             lines.extend([
-                f"## Rollback Path",
+                "## Rollback Path",
                 "",
                 f"`{plan.rollback_path}`",
                 "",

@@ -9,8 +9,7 @@ Three language types:
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Set
-import re
+from typing import Optional
 
 
 class OutputClassification(Enum):
@@ -28,7 +27,7 @@ class ValidationResult:
     classification: OutputClassification
     confidence: float  # 0.0-1.0
     language_type: str  # "deterministic" | "stochastic" | "speculative"
-    sources: List[str]  # What grounds this output?
+    sources: list[str]  # What grounds this output?
     message: str  # Why valid/invalid?
     escalation_needed: bool = False
     escalate_to: Optional[str] = None  # "iso_expert", "qms_consultant", etc.
@@ -97,13 +96,13 @@ class EpistemicValidator:
             plugin_registry: Optional PluginRegistry to check domain expertise
         """
         self.plugin_registry = plugin_registry
-        self.known_unknowns: Set[str] = {
+        self.known_unknowns: set[str] = {
             "hardware_firmware",
             "government_tender",
             "biomedical_device",
             "nuclear_systems",
         }
-        self.partial_domains: Dict[str, str] = {
+        self.partial_domains: dict[str, str] = {
             "ai_ml": "checkpoint restore + feature flags only",
             "software": "git + blue-green, missing: service mesh",
         }
@@ -113,7 +112,7 @@ class EpistemicValidator:
         output_text: str,
         confidence: float,
         domain: str,
-        sources: List[str],
+        sources: list[str],
     ) -> ValidationResult:
         """
         Validate that output doesn't hallucinate beyond available expertise.
@@ -227,11 +226,11 @@ class EpistemicValidator:
 
         return min(1.0, matches / 5.0)  # Normalize to 0-1
 
-    def _has_sources(self, sources: List[str]) -> bool:
+    def _has_sources(self, sources: list[str]) -> bool:
         """Check if output has any valid sources."""
         return len(sources) > 0 and any(s in self.SOURCE_CONFIDENCE for s in sources)
 
-    def _score_sources(self, sources: List[str]) -> Optional[float]:
+    def _score_sources(self, sources: list[str]) -> Optional[float]:
         """
         Score confidence based on source types.
 
@@ -268,10 +267,10 @@ class EpistemicValidator:
         }
         return contacts.get(domain, "Domain expert")
 
-    def _format_confidence_label(self, confidence: float, sources: List[str]) -> str:
+    def _format_confidence_label(self, confidence: float, sources: list[str]) -> str:
         """Format a confidence label for stochastic output."""
-        label = f"\n\n**Classification:** STOCHASTIC (Empirical)\n"
+        label = "\n\n**Classification:** STOCHASTIC (Empirical)\n"
         label += f"**Confidence:** {confidence:.0%}\n"
         label += f"**Sources:** {', '.join(sources)}\n"
-        label += f"**Note:** This is based on patterns, not certainty. Verify with domain expert."
+        label += "**Note:** This is based on patterns, not certainty. Verify with domain expert."
         return label
