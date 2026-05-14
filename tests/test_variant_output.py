@@ -74,13 +74,6 @@ class TestInstantiateForVariant:
         # Default is the CeSPI 8-state machine
         assert plugin.variant_id == "cespi_unlp_8state"
 
-    def test_software_plugin_ignores_variant_id_silently(self):
-        # SoftwareReversePattern has a no-arg constructor — passing a
-        # variant_id must NOT raise; it falls back to default construction.
-        plugin = instantiate_for_variant(SoftwareReversePattern, "any_value")
-        assert plugin is not None
-        assert plugin.domain == "software"
-
     def test_ai_ml_plugin_ignores_variant_id_silently(self):
         plugin = instantiate_for_variant(AIMLReversePattern, "any_value")
         assert plugin is not None
@@ -91,6 +84,33 @@ class TestInstantiateForVariant:
         # an unknown id must surface as a ValueError so callers can react.
         with pytest.raises(ValueError):
             instantiate_for_variant(ISO9001ReversePattern, "not_a_real_variant")
+
+    # ----- software variants (blue/green vs canary) -----
+
+    def test_software_with_blue_green_variant(self):
+        plugin = instantiate_for_variant(SoftwareReversePattern, "blue_green")
+        assert plugin.variant_id == "blue_green"
+        states = {s.state_name for s in plugin.get_supported_states()}
+        assert "Canary" not in states  # blue/green has no Canary tier
+        assert {"In Development", "In Code Review", "Merged to Main",
+                "Staging", "Production"} <= states
+
+    def test_software_with_canary_variant(self):
+        plugin = instantiate_for_variant(SoftwareReversePattern, "canary")
+        assert plugin.variant_id == "canary"
+        states = {s.state_name for s in plugin.get_supported_states()}
+        # Canary variant adds the Canary tier between Staging and Production
+        assert "Canary" in states
+        assert {"In Development", "In Code Review", "Merged to Main",
+                "Staging", "Canary", "Production"} <= states
+
+    def test_software_default_is_blue_green(self):
+        plugin = instantiate_for_variant(SoftwareReversePattern, None)
+        assert plugin.variant_id == "blue_green"
+
+    def test_unknown_software_variant_raises(self):
+        with pytest.raises(ValueError):
+            instantiate_for_variant(SoftwareReversePattern, "not_a_real_software_variant")
 
 
 # ----------------------------------------------------------------------
@@ -193,6 +213,66 @@ class TestWriteVariantReversalPlan:
         assert "Rollback path" in content
         # The CeSPI Approved → Under Approval reversal must surface
         assert "Approved" in content
+
+    # ----- software variant differentiation in REVERSAL_PLAN.md -----
+
+    def test_blue_green_reversal_plan_mentions_lb_switch(self, tmp_path: Path):
+        project = tmp_path / "svc.md"
+        project.write_text(
+            "# Backend Service\n## Objective\nDeploy a backend microservice\n"
+            "## Context\nWeb services\n## Scope\nBackend API\n## Current State\nProduction\n"
+            "## Risks\nRegression\n## Success Criteria\nSLO recovered\n",
+            encoding="utf-8",
+        )
+        analysis = analyze_project(str(project))
+        # Override the classifier-detected domain so the plugin maps correctly
+        analysis.metadata.domain = "software"
+        out_dir = tmp_path / "outputs"
+        out_dir.mkdir()
+        path = write_variant_reversal_plan(
+            out_dir=out_dir,
+            analysis=analysis,
+            variant_id="blue_green",
+            domain_id="software",
+        )
+        assert path is not None
+        text = path.read_text(encoding="utf-8")
+        # Blue/green plan must reference the LB switch + instant rollback
+        assert "blue" in text.lower()
+        assert "load balancer" in text.lower() or "lb" in text.lower()
+        # Blue/green has NO Canary tier
+        for line in text.splitlines():
+            if line.startswith("| `"):
+                assert "`Canary`" not in line
+
+    def test_canary_reversal_plan_mentions_traffic_weights(self, tmp_path: Path):
+        project = tmp_path / "svc.md"
+        project.write_text(
+            "# Backend Service\n## Objective\nDeploy a backend microservice\n"
+            "## Context\nWeb services with progressive rollout\n## Scope\nBackend API\n"
+            "## Current State\nProduction\n## Risks\nRegression\n## Success Criteria\nSLO recovered\n",
+            encoding="utf-8",
+        )
+        analysis = analyze_project(str(project))
+        analysis.metadata.domain = "software"
+        out_dir = tmp_path / "outputs"
+        out_dir.mkdir()
+        path = write_variant_reversal_plan(
+            out_dir=out_dir,
+            analysis=analysis,
+            variant_id="canary",
+            domain_id="software",
+        )
+        assert path is not None
+        text = path.read_text(encoding="utf-8")
+        # Canary plan must reference progressive traffic shifting
+        assert "traffic" in text.lower()
+        assert "canary" in text.lower()
+        # Canary tier appears as a row in the state machine
+        canary_rows = [
+            line for line in text.splitlines() if line.startswith("| `Canary`")
+        ]
+        assert canary_rows, "Canary variant must include a `Canary` row in the table"
 
     def test_returns_none_when_no_plugin_for_domain(self, tmp_path: Path):
         """A domain with no plugin (e.g. operations) yields no file."""

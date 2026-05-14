@@ -187,13 +187,13 @@ class TestSuggestions:
             tmp_path / "h.jsonl",
             ("a", "quality_management", "iso9001", "cespi_unlp_8state"),
         )
-        assert store.suggest_variant_for_domain("ml_systems") is None
+        assert store.suggest_variant_for_domain("not_a_known_domain") is None
 
     def test_most_recent_discipline(self, tmp_path: Path):
         store = self._seed(
             tmp_path / "h.jsonl",
             ("a", "quality_management", "iso9001", "cespi_unlp_8state"),
-            ("b", "software_engineering", "web_services", None),
+            ("b", "software_engineering", "software", None),
         )
         assert store.most_recent_discipline() == "software_engineering"
 

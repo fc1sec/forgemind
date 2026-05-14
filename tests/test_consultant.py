@@ -395,8 +395,8 @@ class TestVariantComparison:
     def test_compare_variants_single_variant_domain_exits_zero(self):
         """A domain with only one variant should not pretend to compare."""
         runner = CliRunner()
-        # ml_systems has one variant in the current taxonomy
-        result = runner.invoke(app, ["compare-variants", "ml_systems"])
+        # ai_ml has one variant in the current taxonomy
+        result = runner.invoke(app, ["compare-variants", "ai_ml"])
         assert result.exit_code == 0
         assert "only one variant" in result.stdout.lower()
 

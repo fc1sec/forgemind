@@ -144,22 +144,73 @@ disciplines:
     description: Patterns for designing, deploying and reverting software systems.
     domains:
 
-      web_services:
-        name: Web Services / Microservices
+      software:
+        name: General Software Services (web / microservices / SaaS)
         coverage: partial
-        confidence: 0.70
+        confidence: 0.75
         variants:
-          - id: generic_blue_green
-            name: Blue/Green deployment with automated rollback
-            source: Industry-standard pattern (Fowler, ThoughtWorks)
-            confidence: 0.70
+          - id: blue_green
+            name: Blue/Green deployment with traffic switch rollback
+            source: >
+              Industry-standard pattern (Fowler — BlueGreenDeployment,
+              martinfowler.com/bliki/BlueGreenDeployment.html; Spinnaker
+              docs; Argo Rollouts BlueGreen strategy)
+            url: https://martinfowler.com/bliki/BlueGreenDeployment.html
+            confidence: 0.80
             production_validated: true
+            since: "Industry-standard pattern (Fowler, 2010s)"
+            scope_evidence: >
+              Documented at length by Spinnaker, Argo Rollouts, Flagger;
+              widely deployed across SaaS providers
+            when_to_choose:
+              - You can run two full production environments simultaneously
+              - Rollback must be near-instant (load-balancer switch)
+              - Workload tolerates a hard cutover between versions
+              - You do not need progressive traffic shaping
+            pros:
+              - Rollback time measured in seconds (LB / DNS switch)
+              - No partial-traffic edge cases; either-or semantics
+              - Operationally simple; few moving parts
+              - Database migrations can be staged with old code reading new schema
+            cons:
+              - Requires 2x production capacity during a release
+              - All-or-nothing exposure — bug surfaces 100% of traffic at switch
+              - Database backward-compatibility is the silent failure mode
+          - id: canary
+            name: Canary deployment with progressive traffic ramp + auto-rollback
+            source: >
+              Industry-standard pattern (Google SRE Workbook — chapter on
+              canarying releases; Netflix Tech Blog on canary analysis;
+              Spinnaker Kayenta; Argo Rollouts Canary strategy; Flagger)
+            url: https://sre.google/workbook/canarying-releases/
+            confidence: 0.75
+            production_validated: true
+            since: "Industry-standard pattern (Google SRE Workbook, 2018)"
+            scope_evidence: >
+              Documented by Google SRE, Netflix engineering, and the
+              Spinnaker / Argo Rollouts / Flagger open-source ecosystems
+            when_to_choose:
+              - You can run two versions side-by-side with weighted traffic
+              - You want progressive exposure (e.g. 1% → 10% → 50% → 100%)
+              - You have SLO-based automated rollback gating
+              - Workload is sensitive to a hard cutover (real-time systems, payments)
+            pros:
+              - Limits blast radius — only a slice of users hit a bad release
+              - Enables data-driven release decisions (Kayenta-style analysis)
+              - Compatible with feature-flag-based fine-grained control
+              - Lower capacity overhead than blue/green
+            cons:
+              - Slower full-rollout cycle (minutes to hours, not seconds)
+              - Requires traffic-shaping infrastructure (service mesh / LB capable of weighting)
+              - More moving parts to reason about during incidents
+              - Database migrations must be backward-compatible during the canary window
         boundary_conditions:
           - Service-mesh circuit-breaker patterns not modeled
           - Saga / compensating-transaction patterns not modeled
+          - Variant choice should be validated against your platform's actual capabilities
         escalate_to: SRE / Platform engineer
 
-      ml_systems:
+      ai_ml:
         name: ML Systems / MLOps
         coverage: partial
         confidence: 0.70

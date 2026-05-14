@@ -1,7 +1,17 @@
 """
-Software Engineering Reverse State Pattern
+Software Engineering Reverse State Pattern.
 
-Generic patterns for reverting software changes: Git, deployment, database migrations.
+Generic patterns for reverting software changes: Git, deployment, database
+migrations. Two production-validated deployment variants are supported:
+
+  - blue_green : two full environments + load-balancer switch
+                 (Fowler — martinfowler.com/bliki/BlueGreenDeployment.html)
+  - canary     : progressive traffic ramp with SLO-based auto-rollback
+                 (Google SRE Workbook — sre.google/workbook/canarying-releases/)
+
+ForgeMind does NOT redistribute upstream code. It codifies the published
+patterns. See `forgemind/data/disciplines.yaml` for full attribution and the
+decision criteria that distinguish the two variants.
 """
 
 from typing import Any, Optional
@@ -17,16 +27,24 @@ from .reverse_state_pattern import (
 
 
 class SoftwareReversePattern(ReverseStatePattern):
-    """Software engineering reversal patterns."""
+    """Software engineering reversal patterns (blue/green and canary)."""
 
     domain = "software"
-    framework = "DevOps/SRE best practices"
+    framework = "DevOps/SRE best practices (Fowler BlueGreen; Google SRE Workbook canarying)"
     description = (
         "Reversal patterns for code changes, deployments, and database migrations. "
-        "Focuses on Git workflows, blue-green deployments, and database rollback."
+        "Supports two production-validated deployment variants: blue/green (LB switch) "
+        "and canary (progressive traffic ramp)."
     )
 
-    STATE_MACHINE = {
+    # Variant identifiers — must match disciplines.yaml entries for `software`.
+    VARIANT_BLUE_GREEN = "blue_green"
+    VARIANT_CANARY = "canary"
+    DEFAULT_VARIANT = VARIANT_BLUE_GREEN
+
+    # Blue/Green machine — original 5-state model.
+    # No explicit "Canary" tier; rollback is an instant LB switch.
+    BLUE_GREEN_STATE_MACHINE = {
         "In Development": {
             "can_revert_to": [],
             "reversible": True,
@@ -53,6 +71,74 @@ class SoftwareReversePattern(ReverseStatePattern):
             "data_loss": "medium",
         },
     }
+
+    # Canary machine — adds a `Canary` tier (1%-5% traffic slice) between
+    # Staging and Production. Production rollback flows through Canary so
+    # the rollback step is "drain traffic back through the canary tier"
+    # rather than an instantaneous LB switch.
+    CANARY_STATE_MACHINE = {
+        "In Development": {
+            "can_revert_to": [],
+            "reversible": True,
+            "data_loss": "none",
+        },
+        "In Code Review": {
+            "can_revert_to": ["In Development"],
+            "reversible": True,
+            "data_loss": "none",
+        },
+        "Merged to Main": {
+            "can_revert_to": ["In Code Review"],
+            "reversible": True,
+            "data_loss": "none",
+        },
+        "Staging": {
+            "can_revert_to": ["In Code Review"],
+            "reversible": True,
+            "data_loss": "low",
+        },
+        "Canary": {
+            "can_revert_to": ["Staging"],
+            "reversible": True,
+            "data_loss": "low",
+        },
+        "Production": {
+            "can_revert_to": ["Canary"],
+            "reversible": True,
+            "data_loss": "medium",
+        },
+    }
+
+    # Mapping variant id → state machine. Add new variants here AND in
+    # disciplines.yaml so the consultant can offer them.
+    VARIANTS = {
+        VARIANT_BLUE_GREEN: BLUE_GREEN_STATE_MACHINE,
+        VARIANT_CANARY: CANARY_STATE_MACHINE,
+    }
+
+    # The legacy attribute name STATE_MACHINE remains for backward compatibility
+    # with code/tests that read it directly. It mirrors the default variant.
+    STATE_MACHINE = BLUE_GREEN_STATE_MACHINE
+
+    # ------------------------------------------------------------------
+    # Construction
+    # ------------------------------------------------------------------
+
+    def __init__(self, variant_id: Optional[str] = None) -> None:
+        """Construct a software plugin bound to a deployment variant.
+
+        Args:
+            variant_id: One of the VARIANTS keys. Defaults to blue/green.
+        """
+        self.variant_id = variant_id or self.DEFAULT_VARIANT
+        if self.variant_id not in self.VARIANTS:
+            raise ValueError(
+                f"Unknown software variant: {self.variant_id}. "
+                f"Known: {sorted(self.VARIANTS.keys())}"
+            )
+        # Bind the active machine on the instance so it shadows the
+        # class-level STATE_MACHINE attribute used below.
+        self.STATE_MACHINE = self.VARIANTS[self.variant_id]
 
     def get_supported_states(self) -> list[ReverseStateDefinition]:
         """Return software development states."""
@@ -102,13 +188,18 @@ class SoftwareReversePattern(ReverseStatePattern):
         if not validation["is_valid"]:
             raise ValueError(validation["reason"])
 
-        # Determine steps based on state pair
+        # Determine steps based on state pair. Production rollback steps
+        # differ between blue/green and canary variants.
         if current_state == "In Code Review" and target_state == "In Development":
             steps = self._steps_review_to_dev()
         elif current_state == "Merged to Main" and target_state == "In Code Review":
             steps = self._steps_merged_to_review()
         elif current_state == "Staging" and target_state == "In Code Review":
             steps = self._steps_staging_to_review()
+        elif current_state == "Canary" and target_state == "Staging":
+            steps = self._steps_canary_to_staging()
+        elif current_state == "Production" and target_state == "Canary":
+            steps = self._steps_prod_to_canary()
         elif current_state == "Production" and target_state == "Staging":
             steps = self._steps_prod_to_staging()
         else:
@@ -191,7 +282,11 @@ class SoftwareReversePattern(ReverseStatePattern):
         ]
 
     def _steps_prod_to_staging(self) -> list[ReverseStep]:
-        """Revert from production (blue-green deployment)."""
+        """Revert from production directly to staging (blue/green variant).
+
+        Blue/green semantics: an instant LB switch returns 100% of traffic to
+        the prior (blue) environment. No progressive ramp.
+        """
         return [
             ReverseStep(
                 step_number=1,
@@ -200,7 +295,7 @@ class SoftwareReversePattern(ReverseStatePattern):
                 approval_role="on_call_engineer",
                 estimated_time_minutes=2,
                 data_loss_risk="none",
-                notes="Assumes blue-green deployment setup",
+                notes="Assumes blue/green deployment setup; rollback is instantaneous",
             ),
             ReverseStep(
                 step_number=2,
@@ -224,16 +319,109 @@ class SoftwareReversePattern(ReverseStatePattern):
             ),
         ]
 
+    def _steps_prod_to_canary(self) -> list[ReverseStep]:
+        """Revert from full production to the canary tier (canary variant).
+
+        Canary semantics: drain traffic from the new revision back through
+        the canary tier (e.g. 100% → 10% → 0%) using the platform's
+        traffic-shaping mechanism (Istio, Linkerd, Argo Rollouts, Flagger).
+        """
+        return [
+            ReverseStep(
+                step_number=1,
+                action="SRE / release manager approves progressive rollback decision",
+                approval_required=True,
+                approval_role="sre_release_manager",
+                estimated_time_minutes=5,
+                notes="Canary rollback is reversible mid-flight; document the trigger metric",
+            ),
+            ReverseStep(
+                step_number=2,
+                action="Shift traffic weights: new revision 100% → 50% → 10% → 0%",
+                approval_required=False,
+                estimated_time_minutes=10,
+                notes="Use service mesh / LB weights (Istio, Argo Rollouts, Flagger)",
+            ),
+            ReverseStep(
+                step_number=3,
+                action="Verify SLO recovery at each weight step (latency, error rate)",
+                approval_required=False,
+                estimated_time_minutes=10,
+                notes="Kayenta-style canary analysis recommended for objective gating",
+            ),
+            ReverseStep(
+                step_number=4,
+                action="Drain remaining sessions on the new revision",
+                approval_required=False,
+                estimated_time_minutes=5,
+                data_loss_risk="low",
+                notes="In-flight sessions may experience brief disruption",
+            ),
+            ReverseStep(
+                step_number=5,
+                action="Confirm SLO recovered; record incident postmortem note",
+                approval_required=False,
+                estimated_time_minutes=10,
+            ),
+        ]
+
+    def _steps_canary_to_staging(self) -> list[ReverseStep]:
+        """Revert from canary tier back to staging (canary variant).
+
+        At canary, only a small traffic slice sees the new revision. Rollback
+        is fast: cut the canary weight to zero, then push the canary tier
+        back to staging-equivalent state.
+        """
+        return [
+            ReverseStep(
+                step_number=1,
+                action="Cut canary traffic weight to 0% (kill canary)",
+                approval_required=False,
+                estimated_time_minutes=1,
+                notes="Affected user slice was 1%-5%; blast radius limited by design",
+            ),
+            ReverseStep(
+                step_number=2,
+                action="Verify baseline SLO returned (latency, error rate)",
+                approval_required=False,
+                estimated_time_minutes=5,
+            ),
+            ReverseStep(
+                step_number=3,
+                action="Remove the canary deployment from the cluster",
+                approval_required=False,
+                estimated_time_minutes=5,
+            ),
+            ReverseStep(
+                step_number=4,
+                action="Open follow-up issue with the trigger metric for root-cause analysis",
+                approval_required=False,
+                estimated_time_minutes=10,
+            ),
+        ]
+
     def _get_dependencies(self, current_state: str) -> list[str]:
-        """Get dependencies for reversal."""
+        """Get dependencies for reversal (variant-aware)."""
         deps = ["Git repository with commit history"]
         if current_state == "Production":
+            if self.variant_id == self.VARIANT_CANARY:
+                deps.extend([
+                    "Canary deployment controller (Argo Rollouts / Flagger / Spinnaker)",
+                    "Service mesh or LB capable of weighted traffic shifting (Istio / Linkerd / Envoy / NGINX)",
+                    "SLO-based metric provider (Prometheus / Datadog / NewRelic) for rollback gating",
+                ])
+            else:  # blue/green default
+                deps.extend([
+                    "Blue/green deployment infrastructure (two production environments)",
+                    "Load balancer or DNS capable of an instantaneous traffic switch",
+                    "Monitoring and alerting",
+                ])
+        if current_state == "Canary":
             deps.extend([
-                "Blue-green or canary deployment infrastructure",
-                "Load balancer configured for traffic switching",
-                "Monitoring and alerting",
+                "Canary deployment controller",
+                "SLO metric provider for rollback gating",
             ])
-        if current_state in ["Production", "Staging"]:
+        if current_state in ["Production", "Canary", "Staging"]:
             deps.append("Database backup before migration")
         return deps
 

@@ -61,6 +61,42 @@ THE SOFTWARE.
 
 ---
 
+---
+
+## Industry-standard deployment patterns — software domain
+
+The two `software` variants ForgeMind ships (`blue_green` and `canary`) codify
+industry-standard deployment patterns. ForgeMind does NOT redistribute upstream
+code from these sources; it codifies the published patterns into its
+state-machine model.
+
+### Blue/Green deployment
+
+- **Pattern documented at**: Martin Fowler — BlueGreenDeployment
+  ([martinfowler.com/bliki/BlueGreenDeployment.html](https://martinfowler.com/bliki/BlueGreenDeployment.html))
+- **Reference implementations** (open source): Spinnaker, Argo Rollouts
+  (BlueGreen strategy), Flagger.
+- **What ForgeMind uses**: the canonical blue/green semantics —
+  two full production environments with an instantaneous load-balancer
+  switch as the rollback primitive.
+
+### Canary release
+
+- **Pattern documented at**: Google SRE Workbook — Canarying Releases
+  ([sre.google/workbook/canarying-releases/](https://sre.google/workbook/canarying-releases/))
+- **Reference implementations** (open source): Spinnaker Kayenta,
+  Argo Rollouts (Canary strategy), Flagger.
+- **Additional reference**: Netflix Tech Blog posts on canary analysis.
+- **What ForgeMind uses**: progressive traffic shifting (1% → 10% → 50% →
+  100%), SLO-based automated rollback gating, the `Canary` tier between
+  Staging and Production.
+
+The Google SRE Workbook is licensed CC-BY-4.0; Martin Fowler's bliki is
+publicly accessible reference material. ForgeMind credits these sources
+because the patterns are theirs even though no upstream code is copied.
+
+---
+
 ## Reporting attribution issues
 
 If you are an author of a project whose patterns appear in ForgeMind and you

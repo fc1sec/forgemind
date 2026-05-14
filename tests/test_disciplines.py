@@ -147,18 +147,16 @@ class TestCoverageClaimsMatchCode:
             registry.register(ISO9001ReversePattern)
             assert registry.has_pattern("iso9001")
 
-    def test_covered_or_partial_web_services_has_plugin(self):
+    def test_covered_or_partial_software_has_plugin(self):
         taxonomy = get_taxonomy()
-        # The software plugin currently registers under "software"; verify
-        # at least the family is present when web_services is claimed.
-        if taxonomy.can_advise_on("web_services"):
+        if taxonomy.can_advise_on("software"):
             registry = PluginRegistry()
             registry.register(SoftwareReversePattern)
             assert registry.has_pattern("software")
 
-    def test_covered_or_partial_ml_systems_has_plugin(self):
+    def test_covered_or_partial_ai_ml_has_plugin(self):
         taxonomy = get_taxonomy()
-        if taxonomy.can_advise_on("ml_systems"):
+        if taxonomy.can_advise_on("ai_ml"):
             registry = PluginRegistry()
             registry.register(AIMLReversePattern)
             assert registry.has_pattern("ai_ml")
