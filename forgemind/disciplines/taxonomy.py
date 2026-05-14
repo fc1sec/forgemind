@@ -40,6 +40,12 @@ class Variant:
     production_validated: bool = False
     since: str | None = None
     scope_evidence: str | None = None
+    # Decision-support fields (used by `forgemind compare-variants` and the
+    # consultant's variant comparison step). Optional — variants without them
+    # render the comparison view with "no criteria documented" placeholders.
+    when_to_choose: tuple[str, ...] = ()
+    pros: tuple[str, ...] = ()
+    cons: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -299,6 +305,9 @@ def _parse_domain(domain_id: str, discipline_id: str, data: dict) -> Domain:
             production_validated=bool(v.get("production_validated", False)),
             since=v.get("since"),
             scope_evidence=v.get("scope_evidence"),
+            when_to_choose=tuple(str(x) for x in (v.get("when_to_choose") or [])),
+            pros=tuple(str(x) for x in (v.get("pros") or [])),
+            cons=tuple(str(x) for x in (v.get("cons") or [])),
         )
         for v in variants_data
     )

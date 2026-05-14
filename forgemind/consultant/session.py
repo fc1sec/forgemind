@@ -112,6 +112,9 @@ class _Calibration:
     # NOT keep asking the domain question. Without this, a None `domain` means
     # "not yet answered" AND "answered generic" — ambiguous.
     domain_answered: bool = False
+    # Set True for one turn when the user picks "compare variants first" so
+    # the CLI knows to render the comparison view; cleared on the next answer.
+    comparison_requested: bool = False
 
 
 class ConsultantSession:
@@ -272,22 +275,67 @@ class ConsultantSession:
 
     def _build_variant_question(self) -> ConsultantTurn:
         assert self._calibration.domain is not None
-        options = tuple(
+        variant_options = [
             ConsultantOption(
                 label=v.name,
                 value=v.id,
                 note=f"  [confidence {v.confidence:.0%}{', production' if v.production_validated else ''}]",
             )
             for v in self._calibration.domain.variants
+        ]
+        # Add the "compare side-by-side first" option ONLY if at least one
+        # variant has documented decision criteria; otherwise the comparison
+        # view is empty and the option is useless.
+        any_criteria = any(
+            v.when_to_choose or v.pros or v.cons
+            for v in self._calibration.domain.variants
         )
+        if any_criteria:
+            variant_options.append(
+                ConsultantOption(
+                    label="Show me a side-by-side comparison first",
+                    value="__compare__",
+                    note="  [no choice made yet]",
+                )
+            )
         return ConsultantTurn(
             step=3,
             total_steps=self.MAX_STEPS,
             purpose=f"Variant within {self._calibration.domain.name}",
             question="Which validated variant best matches your context?",
-            options=options,
+            options=tuple(variant_options),
             default_index=0,
         )
+
+    def render_variant_comparison(self) -> list[str]:
+        """Return human-readable side-by-side comparison lines for the
+        current domain's variants. Called by the CLI when the user picks
+        '__compare__' at the variant step.
+        """
+        d = self._calibration.domain
+        if d is None or not d.variants:
+            return ["No variants to compare."]
+        lines: list[str] = [f"Variant comparison for {d.name}:"]
+        for v in d.variants:
+            lines.append("")
+            lines.append(f"=== {v.name} ({v.id}) ===")
+            prod = " · production-validated" if v.production_validated else ""
+            lines.append(f"Confidence: {v.confidence:.0%}{prod}")
+            if v.source:
+                lines.append(f"Source: {v.source}")
+            if v.when_to_choose:
+                lines.append("Choose this if:")
+                for criterion in v.when_to_choose:
+                    lines.append(f"  • {criterion}")
+            if v.pros:
+                lines.append("Pros:")
+                for p in v.pros:
+                    lines.append(f"  + {p}")
+            if v.cons:
+                lines.append("Cons:")
+                for c in v.cons:
+                    lines.append(f"  - {c}")
+        return lines
 
     def _build_confirm_question(self) -> ConsultantTurn:
         d = self._calibration.domain
@@ -363,6 +411,13 @@ class ConsultantSession:
 
         elif turn.purpose.startswith("Variant"):
             assert self._calibration.domain is not None
+            # Special sentinel: user asked for comparison. Stay on the variant
+            # step (do NOT set variant) and signal the caller to render the
+            # comparison view, then re-ask the question.
+            if choice.value == "__compare__":
+                self._calibration.comparison_requested = True
+                return
+            self._calibration.comparison_requested = False
             for v in self._calibration.domain.variants:
                 if v.id == choice.value:
                     self._calibration.variant = v

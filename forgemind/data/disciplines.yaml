@@ -62,6 +62,20 @@ disciplines:
             production_validated: true
             since: "2014"
             scope_evidence: Two ISO 9001:2015 certified scopes, 30+ users, ~3000 records
+            when_to_choose:
+              - Medium-to-large organization with multiple stakeholders per document
+              - Distinct authorities for reviewer vs approver are required
+              - 'You need an explicit "In Force" state separate from "Approved" (e.g. effective dates differ from approval dates)'
+              - Audit-trail granularity is itself a compliance requirement
+            pros:
+              - Stronger audit trail (more discrete state transitions logged)
+              - Distinct role responsibilities per phase
+              - '"In Force" state aligns with regulatory "effective date" practice'
+              - Production-validated against real ISO 9001:2015 audits
+            cons:
+              - Higher ceremony — slower flow for small teams
+              - Requires more user training and configuration
+              - May feel over-engineered for small/single-author documents
           - id: iso9001_minimalist_5state
             name: Minimalist 5-state document lifecycle
             source: Industry-common simplified QMS pattern (Draft → Under Review → Approved → Signed → Obsolete)
@@ -69,6 +83,20 @@ disciplines:
             production_validated: true
             since: "Industry pattern"
             scope_evidence: Commonly used by small organizations and startups requiring documented QMS without full lifecycle ceremony
+            when_to_choose:
+              - Small organization or startup with a single QMS owner
+              - The same person typically reviews AND approves
+              - 'No legal/regulatory need for "In Force" vs "Approved" distinction'
+              - Lifecycle ceremony cost outweighs audit-granularity benefit
+            pros:
+              - Lower ceremony — faster end-to-end lifecycle
+              - Easier user training and onboarding
+              - Fewer mandatory roles
+              - Aligned with the simplest valid §7.5 reading
+            cons:
+              - Less granular audit trail
+              - Hard to scale to multi-stakeholder governance later
+              - 'No native modeling of "approved but not yet effective" documents'
         boundary_conditions:
           - Industry-specific extensions (pharma, aerospace, automotive) NOT modeled here
           - Document distribution mechanism (§7.5.3) modeled abstractly only

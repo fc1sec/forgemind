@@ -378,6 +378,83 @@ class TestVariantPluralism:
 # ----------------------------------------------------------------------
 
 
+class TestVariantComparison:
+    """Side-by-side variant comparison: CLI command + consultant inline option."""
+
+    def test_compare_variants_command_lists_both(self):
+        runner = CliRunner()
+        result = runner.invoke(app, ["compare-variants", "iso9001"])
+        assert result.exit_code == 0
+        assert "CeSPI" in result.stdout
+        assert "Minimalist" in result.stdout or "5-state" in result.stdout
+        # Decision criteria for both variants must appear
+        assert "Choose this if" in result.stdout
+        assert result.stdout.lower().count("pros") >= 1
+        assert result.stdout.lower().count("cons") >= 1
+
+    def test_compare_variants_single_variant_domain_exits_zero(self):
+        """A domain with only one variant should not pretend to compare."""
+        runner = CliRunner()
+        # ml_systems has one variant in the current taxonomy
+        result = runner.invoke(app, ["compare-variants", "ml_systems"])
+        assert result.exit_code == 0
+        assert "only one variant" in result.stdout.lower()
+
+    def test_compare_variants_unknown_domain_errors(self):
+        runner = CliRunner()
+        result = runner.invoke(app, ["compare-variants", "totally_made_up"])
+        assert result.exit_code == 1
+
+    def test_consultant_offers_compare_option_when_multiple_variants(
+        self, qms_project: Path
+    ):
+        session = ConsultantSession(qms_project)
+        session.load_project()
+        session.answer(session.next_turn(), 0)  # discipline
+        turn = session.next_turn()  # domain
+        iso_idx = next(i for i, opt in enumerate(turn.options) if opt.value == "iso9001")
+        session.answer(turn, iso_idx)
+        # Variant question must include the compare option
+        turn = session.next_turn()
+        assert turn is not None and turn.purpose.startswith("Variant")
+        values = {opt.value for opt in turn.options}
+        assert "__compare__" in values
+
+    def test_choosing_compare_yields_inline_comparison_and_repeats_variant_question(
+        self, qms_project: Path
+    ):
+        session = ConsultantSession(qms_project)
+        session.load_project()
+        session.answer(session.next_turn(), 0)  # discipline
+        turn = session.next_turn()  # domain
+        iso_idx = next(i for i, opt in enumerate(turn.options) if opt.value == "iso9001")
+        session.answer(turn, iso_idx)
+        # Pick __compare__
+        turn = session.next_turn()
+        compare_idx = next(i for i, opt in enumerate(turn.options) if opt.value == "__compare__")
+        session.answer(turn, compare_idx)
+        # Comparison should be available
+        assert session.calibration.comparison_requested is True
+        text = "\n".join(session.render_variant_comparison())
+        assert "CeSPI" in text and ("Minimalist" in text or "5-state" in text)
+        assert "Choose this if" in text
+        # Next turn must STILL be the variant question (user didn't pick yet)
+        turn = session.next_turn()
+        assert turn is not None and turn.purpose.startswith("Variant")
+
+    def test_variant_has_decision_criteria_populated(self):
+        """Schema integrity: every iso9001 variant must declare decision criteria."""
+        from forgemind.disciplines import get_taxonomy
+
+        tx = get_taxonomy()
+        iso = tx.get_domain("iso9001")
+        assert iso is not None
+        for v in iso.variants:
+            assert v.when_to_choose, f"{v.id} missing when_to_choose"
+            assert v.pros, f"{v.id} missing pros"
+            assert v.cons, f"{v.id} missing cons"
+
+
 class TestCalibrationAuditFile:
     def test_calibration_log_written_to_output_dir(
         self, qms_project: Path, tmp_path: Path

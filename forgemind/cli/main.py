@@ -633,6 +633,15 @@ def consult(
         # If the answer triggered a refusal, break early.
         if session.calibration.refusal_reason:
             break
+
+        # If the user asked for a variant comparison, render it inline and
+        # loop back to ask the variant question again. In --auto-accept mode
+        # the comparison was never offered as the default, so this won't fire.
+        if getattr(session.calibration, "comparison_requested", False):
+            console.print()
+            for line in session.render_variant_comparison():
+                console.print(line)
+
         console.print()
 
     # Disclose what we calibrated to
@@ -756,6 +765,72 @@ def capabilities(
                 console.print(f"  [red]✗[/red] [bold]{entry.id}[/bold] — {entry.reason}")
                 console.print(f"      [dim]Escalate to: {entry.escalate_to}[/dim]")
             console.print()
+
+
+@app.command("compare-variants")
+def compare_variants(domain: str) -> None:
+    """Compare the validated variants ForgeMind knows for a given domain.
+
+    Use this BEFORE choosing a variant in `forgemind consult`. The output is
+    a side-by-side decision support card: when to choose each variant, what
+    you gain, what you give up.
+    """
+    try:
+        from forgemind.disciplines import get_taxonomy
+
+        taxonomy = get_taxonomy()
+    except (FileNotFoundError, ValueError, ImportError) as exc:
+        console.print(f"[red]✗ Could not load disciplines taxonomy:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+    target = taxonomy.get_domain(domain)
+    if target is None:
+        console.print(f"[red]✗ Unknown domain:[/red] {domain}")
+        console.print("\nRun [cyan]forgemind capabilities[/cyan] to see known domains.")
+        raise typer.Exit(1)
+
+    if len(target.variants) < 2:
+        console.print(
+            f"[yellow]Only one variant declared for {target.name} — nothing to compare.[/yellow]"
+        )
+        if target.variants:
+            v = target.variants[0]
+            console.print(f"  - {v.name} ({v.id}), confidence {v.confidence:.0%}")
+        raise typer.Exit(0)
+
+    console.print(
+        f"[bold cyan]Variant comparison for {target.name}[/bold cyan] "
+        f"[dim]({target.id})[/dim]\n"
+    )
+
+    for variant in target.variants:
+        console.print(f"[bold]{variant.name}[/bold] [dim]({variant.id})[/dim]")
+        prod = " · production-validated" if variant.production_validated else ""
+        console.print(f"  Confidence: {variant.confidence:.0%}{prod}")
+        if variant.source:
+            console.print(f"  Source: {variant.source}")
+
+        if variant.when_to_choose:
+            console.print("  [bold]Choose this if:[/bold]")
+            for criterion in variant.when_to_choose:
+                console.print(f"    • {criterion}")
+        else:
+            console.print("  [dim]Decision criteria not documented for this variant.[/dim]")
+
+        if variant.pros:
+            console.print("  [green]Pros:[/green]")
+            for p in variant.pros:
+                console.print(f"    [green]+[/green] {p}")
+        if variant.cons:
+            console.print("  [yellow]Cons:[/yellow]")
+            for c in variant.cons:
+                console.print(f"    [yellow]-[/yellow] {c}")
+        console.print()
+
+    console.print(
+        "[dim]Tip: run `forgemind consult <project.md>` to be guided through "
+        "variant selection in context.[/dim]"
+    )
 
 
 @app.command("explain-limits")
