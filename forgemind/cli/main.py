@@ -463,6 +463,62 @@ def version() -> None:
     console.print(f"[cyan]ForgeMind[/cyan] v{__version__}")
 
 
+@app.command()
+def history(
+    clear: bool = typer.Option(
+        False, "--clear", help="Erase all stored history (cannot be undone)"
+    ),
+    limit: int = typer.Option(
+        20, "--limit", help="Maximum number of entries to display"
+    ),
+) -> None:
+    """View or clear ForgeMind's calibration history.
+
+    Each successful `forgemind consult` appends one entry to a local JSONL
+    file (default: `~/.forgemind/history.jsonl`). Future consult sessions
+    use this history to bias defaults toward your prior choices.
+
+    The store is LOCAL ONLY — no telemetry is collected or transmitted.
+    """
+    from forgemind.history import HistoryStore
+
+    store = HistoryStore()
+
+    if clear:
+        store.clear()
+        console.print(f"[green]✓[/green] History cleared ({store.path})")
+        return
+
+    entries = store.all_entries()
+    if not entries:
+        console.print(f"[dim]No history recorded yet (would write to {store.path}).[/dim]")
+        console.print(
+            "Run [cyan]forgemind consult <project.md>[/cyan] to record your first session."
+        )
+        return
+
+    console.print(
+        f"[bold cyan]ForgeMind calibration history[/bold cyan] "
+        f"[dim]({store.path}, {len(entries)} entries)[/dim]\n"
+    )
+    # Most recent first, capped by --limit
+    for entry in reversed(entries[-limit:]):
+        console.print(
+            f"[dim]{entry.timestamp}[/dim] · {entry.project_slug}"
+        )
+        bits = []
+        if entry.discipline_id:
+            bits.append(f"discipline={entry.discipline_id}")
+        if entry.domain_id:
+            bits.append(f"domain={entry.domain_id}")
+        if entry.variant_id:
+            bits.append(f"variant={entry.variant_id}")
+        if bits:
+            console.print("  " + " · ".join(bits))
+        console.print(f"  [dim]project: {entry.project_file}[/dim]")
+        console.print()
+
+
 def _write_calibration_log(log_path: Path, session) -> None:
     """Persist a calibration audit log next to the generated outputs.
 
@@ -716,6 +772,27 @@ def consult(
     # Persist the calibration log alongside the generated outputs so a
     # reviewer can always answer "what did the consultant calibrate to?".
     _write_calibration_log(out_dir / "CONSULTANT_CALIBRATION.md", session)
+
+    # Record the calibration in the persistent history so future consult
+    # sessions can bias defaults toward this user's prior choices.
+    try:
+        from forgemind.history import HistoryEntry, HistoryStore
+
+        store = HistoryStore()
+        c = session.calibration
+        store.append(
+            HistoryEntry.make(
+                project_slug=analysis.metadata.slug,
+                project_file=str(project_path),
+                taxonomy_version=session.taxonomy.version,
+                discipline_id=c.discipline.id if c.discipline else None,
+                domain_id=c.domain.id if c.domain else None,
+                variant_id=c.variant.id if c.variant else None,
+            )
+        )
+    except Exception:  # noqa: BLE001
+        # History writes must never break output generation.
+        pass
 
     console.print(f"[green]✓[/green] Outputs written to {out_dir}")
     console.print(

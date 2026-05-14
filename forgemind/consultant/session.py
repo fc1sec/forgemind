@@ -26,6 +26,7 @@ from forgemind.core.classifier import classify_domain
 from forgemind.core.intake import parse_markdown
 from forgemind.disciplines import Coverage, Discipline, Domain, get_taxonomy
 from forgemind.disciplines.taxonomy import DisciplineTaxonomy, Variant
+from forgemind.history import HistoryStore
 
 # ----------------------------------------------------------------------
 # Mapping from the keyword-classifier output → taxonomy discipline ids
@@ -126,9 +127,14 @@ class ConsultantSession:
         self,
         project_file: Path,
         taxonomy: DisciplineTaxonomy | None = None,
+        history: HistoryStore | None = None,
     ) -> None:
         self.project_file = Path(project_file)
         self.taxonomy = taxonomy or get_taxonomy()
+        # History is optional: if a caller doesn't want past-choice bias
+        # (e.g. fresh-environment tests), they can pass an empty store
+        # pointing at a tmp path. Defaults to the user's history store.
+        self.history = history if history is not None else HistoryStore()
         self._calibration = _Calibration()
         self._project_input = None
         self._classifier_output: str | None = None
@@ -216,11 +222,18 @@ class ConsultantSession:
         candidates = self._calibration.discipline_candidates
         # Detect classifier output for the note
         note_for = self._classifier_output
+        prior_discipline = self.history.most_recent_discipline()
+
         options = []
+        prior_index: int | None = None
         for i, disc in enumerate(candidates):
-            note = (
-                f"  [detected: {note_for}]" if i == 0 and note_for else None
-            )
+            tags = []
+            if i == 0 and note_for:
+                tags.append(f"detected: {note_for}")
+            if prior_discipline and disc.id == prior_discipline:
+                tags.append("your last choice")
+                prior_index = i
+            note = f"  [{' · '.join(tags)}]" if tags else None
             options.append(
                 ConsultantOption(label=disc.name, value=disc.id, note=note)
             )
@@ -230,21 +243,32 @@ class ConsultantSession:
                 value="__other__",
             )
         )
+        # Prefer the user's prior discipline as default when classifier and
+        # history agree (or even when only history matches a candidate).
+        default = prior_index if prior_index is not None else 0
         return ConsultantTurn(
             step=1,
             total_steps=self.MAX_STEPS,
             purpose="Discipline calibration",
             question="Which discipline best describes this project?",
             options=tuple(options),
-            default_index=0,
+            default_index=default,
         )
 
     def _build_domain_question(self) -> ConsultantTurn:
         assert self._calibration.discipline is not None
         disc = self._calibration.discipline
+        prior_domain = self.history.suggest_domain_for_discipline(disc.id)
+
         options: list[ConsultantOption] = []
-        for domain in disc.domains.values():
+        prior_index: int | None = None
+        domains_list = list(disc.domains.values())
+        for i, domain in enumerate(domains_list):
             note = self._coverage_note(domain)
+            if prior_domain and domain.id == prior_domain:
+                # Surface the prior choice as a tag in the note
+                note = (note or "") + " · your last choice"
+                prior_index = i
             options.append(
                 ConsultantOption(
                     label=domain.name,
@@ -259,13 +283,14 @@ class ConsultantSession:
                 value="__generic__",
             )
         )
+        default = prior_index if prior_index is not None else 0
         return ConsultantTurn(
             step=2,
             total_steps=self.MAX_STEPS,
             purpose=f"Domain within {disc.name}",
             question="Which specific domain applies?",
             options=tuple(options),
-            default_index=0,
+            default_index=default,
         )
 
     def _needs_variant_question(self) -> bool:
@@ -275,14 +300,22 @@ class ConsultantSession:
 
     def _build_variant_question(self) -> ConsultantTurn:
         assert self._calibration.domain is not None
-        variant_options = [
-            ConsultantOption(
-                label=v.name,
-                value=v.id,
-                note=f"  [confidence {v.confidence:.0%}{', production' if v.production_validated else ''}]",
+        prior_variant = self.history.suggest_variant_for_domain(
+            self._calibration.domain.id
+        )
+        variant_options: list[ConsultantOption] = []
+        prior_index: int | None = None
+        for i, v in enumerate(self._calibration.domain.variants):
+            tags = [f"confidence {v.confidence:.0%}"]
+            if v.production_validated:
+                tags.append("production")
+            if prior_variant and v.id == prior_variant:
+                tags.append("your last choice")
+                prior_index = i
+            note = f"  [{' · '.join(tags)}]"
+            variant_options.append(
+                ConsultantOption(label=v.name, value=v.id, note=note)
             )
-            for v in self._calibration.domain.variants
-        ]
         # Add the "compare side-by-side first" option ONLY if at least one
         # variant has documented decision criteria; otherwise the comparison
         # view is empty and the option is useless.
@@ -298,13 +331,14 @@ class ConsultantSession:
                     note="  [no choice made yet]",
                 )
             )
+        default = prior_index if prior_index is not None else 0
         return ConsultantTurn(
             step=3,
             total_steps=self.MAX_STEPS,
             purpose=f"Variant within {self._calibration.domain.name}",
             question="Which validated variant best matches your context?",
             options=tuple(variant_options),
-            default_index=0,
+            default_index=default,
         )
 
     def render_variant_comparison(self) -> list[str]:
