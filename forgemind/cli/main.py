@@ -1,6 +1,7 @@
 """ForgeMind CLI using Typer."""
 
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich.console import Console
@@ -460,6 +461,169 @@ def export(
 def version() -> None:
     """Show version."""
     console.print(f"[cyan]ForgeMind[/cyan] v{__version__}")
+
+
+@app.command()
+def capabilities(
+    discipline: Optional[str] = typer.Option(
+        None, "--discipline", help="Filter to a single discipline id"
+    ),
+) -> None:
+    """Show what ForgeMind can advise on (and what it knows it cannot).
+
+    This is ForgeMind's self-knowledge: a coverage report across every
+    discipline and domain, sourced from `forgemind/data/disciplines.yaml`.
+    """
+    try:
+        from forgemind.disciplines import Coverage, get_taxonomy
+
+        taxonomy = get_taxonomy()
+    except (FileNotFoundError, ValueError, ImportError) as exc:
+        console.print(f"[red]✗ Could not load disciplines taxonomy:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+    summary = taxonomy.summary()
+    console.print(
+        f"[bold cyan]ForgeMind Capabilities[/bold cyan] "
+        f"(taxonomy v{taxonomy.version}, updated {taxonomy.last_updated})"
+    )
+    console.print(
+        f"[dim]{summary['disciplines']} disciplines · "
+        f"{summary['domains_total']} domains · "
+        f"{summary['covered']} covered · "
+        f"{summary['partial']} partial · "
+        f"{summary['not_covered']} not covered · "
+        f"{summary['out_of_scope_by_design']} out-of-scope by design[/dim]\n"
+    )
+
+    disciplines_iter = (
+        [taxonomy.get_discipline(discipline)] if discipline else taxonomy.disciplines.values()
+    )
+    disciplines_iter = [d for d in disciplines_iter if d is not None]
+    if not disciplines_iter:
+        console.print(f"[red]✗ Unknown discipline:[/red] {discipline}")
+        raise typer.Exit(1)
+
+    coverage_styles = {
+        Coverage.COVERED: ("[green]✓ covered[/green]", "green"),
+        Coverage.PARTIAL: ("[yellow]◐ partial[/yellow]", "yellow"),
+        Coverage.NOT_COVERED: ("[red]✗ not covered[/red]", "red"),
+    }
+
+    for disc in disciplines_iter:
+        console.print(f"[bold]{disc.name}[/bold] [dim]({disc.id})[/dim]")
+        if disc.description:
+            console.print(f"  [dim]{disc.description}[/dim]")
+        table = Table(show_header=True, header_style="bold", box=None, pad_edge=False)
+        table.add_column("Domain", style="cyan", no_wrap=False)
+        table.add_column("Coverage", no_wrap=True)
+        table.add_column("Confidence", no_wrap=True)
+        table.add_column("Escalate to", no_wrap=False)
+        for domain in disc.domains.values():
+            label, _ = coverage_styles[domain.coverage]
+            conf = (
+                f"{domain.confidence:.0%}"
+                if domain.confidence is not None
+                else "—"
+            )
+            table.add_row(
+                domain.name,
+                label,
+                conf,
+                domain.escalate_to or "—",
+            )
+        console.print(table)
+        console.print()
+
+    if not discipline:
+        out_of_scope = taxonomy.list_out_of_scope()
+        if out_of_scope:
+            console.print("[bold red]Out of scope by design[/bold red] [dim](will always escalate)[/dim]")
+            for entry in out_of_scope:
+                console.print(f"  [red]✗[/red] [bold]{entry.id}[/bold] — {entry.reason}")
+                console.print(f"      [dim]Escalate to: {entry.escalate_to}[/dim]")
+            console.print()
+
+
+@app.command("explain-limits")
+def explain_limits(domain: str) -> None:
+    """Explain what ForgeMind does NOT cover for a given domain.
+
+    Use this BEFORE relying on ForgeMind's advice in regulated, high-stakes,
+    or unfamiliar domains. Honest disclosure of limitations is the contract
+    of a responsible consultant.
+    """
+    try:
+        from forgemind.disciplines import Coverage, get_taxonomy
+
+        taxonomy = get_taxonomy()
+    except (FileNotFoundError, ValueError, ImportError) as exc:
+        console.print(f"[red]✗ Could not load disciplines taxonomy:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+    # Out-of-scope-by-design check first
+    if domain in taxonomy.out_of_scope:
+        entry = taxonomy.out_of_scope[domain]
+        console.print(
+            f"[bold red]Out of scope by design:[/bold red] [bold]{entry.id}[/bold]\n"
+        )
+        console.print(f"[bold]Why:[/bold] {entry.reason}")
+        console.print(f"[bold]Rationale:[/bold] {entry.rationale}")
+        console.print(f"[bold]Escalate to:[/bold] {entry.escalate_to}")
+        return
+
+    target = taxonomy.get_domain(domain)
+    if target is None:
+        console.print(f"[red]✗ Unknown domain:[/red] {domain}")
+        console.print(
+            "\nRun [cyan]forgemind capabilities[/cyan] to see all known domains."
+        )
+        raise typer.Exit(1)
+
+    coverage_label = {
+        Coverage.COVERED: "[green]Covered[/green]",
+        Coverage.PARTIAL: "[yellow]Partial coverage[/yellow]",
+        Coverage.NOT_COVERED: "[red]Not covered[/red]",
+    }[target.coverage]
+
+    console.print(f"[bold]{target.name}[/bold] [dim]({target.id})[/dim]")
+    console.print(f"Status: {coverage_label}")
+    if target.confidence is not None:
+        console.print(f"Confidence: {target.confidence:.0%}")
+    if target.escalate_to:
+        console.print(f"Escalate to: {target.escalate_to}")
+    console.print()
+
+    if target.coverage == Coverage.NOT_COVERED:
+        console.print("[bold red]ForgeMind will refuse to advise in this domain.[/bold red]")
+        if target.reason:
+            console.print(f"\n[bold]Reason:[/bold] {target.reason}")
+        return
+
+    if target.variants:
+        console.print("[bold]Validated variants ForgeMind knows about:[/bold]")
+        for variant in target.variants:
+            console.print(f"  [green]✓[/green] [bold]{variant.name}[/bold] [dim]({variant.id})[/dim]")
+            if variant.source:
+                console.print(f"      Source: {variant.source}")
+            if variant.url:
+                console.print(f"      URL: {variant.url}")
+            if variant.production_validated:
+                since = f" since {variant.since}" if variant.since else ""
+                console.print(f"      [dim]Production-validated{since}[/dim]")
+            console.print(f"      Confidence: {variant.confidence:.0%}")
+        console.print()
+
+    if target.boundary_conditions:
+        console.print("[bold]Known gaps / what ForgeMind does NOT cover here:[/bold]")
+        for cond in target.boundary_conditions:
+            console.print(f"  [yellow]⚠[/yellow]  {cond}")
+        console.print()
+
+    console.print(
+        "[dim]Tip: even within covered domains, outputs are STOCHASTIC and require "
+        "expert review for high-stakes decisions.[/dim]"
+    )
 
 
 if __name__ == "__main__":

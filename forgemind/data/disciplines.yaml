@@ -1,0 +1,324 @@
+# =============================================================================
+# ForgeMind — Disciplines Taxonomy
+# =============================================================================
+#
+# This file IS ForgeMind's self-knowledge: the declarative answer to
+#   "What can ForgeMind advise on, and what does it know it cannot?"
+#
+# Every CLI command, generator and validator that produces or rejects advice
+# is expected to consult this taxonomy. It is the single source of truth for
+# coverage, confidence calibration and escalation routing.
+#
+# Coverage states:
+#   covered      — at least one production-validated variant + tests; outputs
+#                  may be classified DETERMINISTIC when grounded in sources.
+#   partial      — at least one validated pattern, but known gaps exist; all
+#                  outputs are STOCHASTIC and must carry a confidence label.
+#   not_covered  — no patterns; ForgeMind MUST escalate to a human expert
+#                  and never produce a recommendation in this domain.
+#
+# When you add or upgrade a plugin/template, ALSO update this file. Coverage
+# claims that aren't backed by code are caught by the test suite.
+# =============================================================================
+
+version: "1.0"
+last_updated: "2026-05-13"
+
+coverage_legend:
+  covered: >
+    Full pattern library with at least one production-validated variant +
+    automated tests. ForgeMind may produce deterministic advice when output
+    is grounded in cited sources.
+  partial: >
+    At least one validated pattern, but known gaps remain. All advice is
+    stochastic and must carry an explicit confidence label.
+  not_covered: >
+    No patterns. ForgeMind must escalate to a human expert and refuse to
+    speculate. Out-of-scope by design or pending contribution.
+
+# -----------------------------------------------------------------------------
+# Disciplines — top-level fields of expertise
+# -----------------------------------------------------------------------------
+disciplines:
+
+  quality_management:
+    name: Quality Management Systems
+    description: >
+      Systems for managing quality, compliance, audits, document lifecycles,
+      and continuous improvement across regulated and non-regulated industries.
+    domains:
+
+      iso9001:
+        name: ISO 9001:2015 — General QMS
+        coverage: partial
+        confidence: 0.85
+        variants:
+          - id: cespi_unlp_8state
+            name: CeSPI UNLP 8-state document lifecycle
+            source: iso-gestion (CeSPI UNLP)
+            url: https://github.com/Desarrollo-CeSPI/iso-gestion
+            license: MIT
+            confidence: 0.85
+            production_validated: true
+            since: "2014"
+            scope_evidence: Two ISO 9001:2015 certified scopes, 30+ users, ~3000 records
+        boundary_conditions:
+          - Other organizations may use 4-6 state variants (minimalist QMS)
+          - Industry-specific extensions (pharma, aerospace, automotive) NOT modeled here
+          - Document distribution mechanism (§7.5.3) modeled abstractly only
+        escalate_to: ISO 9001 lead auditor / QMS consultant
+
+      iso13485:
+        name: ISO 13485 — Medical Devices QMS
+        coverage: not_covered
+        reason: >
+          Medical device QMS adds design controls, risk management (ISO 14971),
+          and FDA/EMA regulatory submission requirements not present in ISO 9001.
+        escalate_to: Regulatory affairs specialist (FDA QSR / EU MDR)
+
+      as9100:
+        name: AS9100 — Aerospace QMS
+        coverage: not_covered
+        reason: >
+          Aerospace QMS adds counterfeit-parts controls, configuration management,
+          and stricter risk management not present in ISO 9001 baseline.
+        escalate_to: Aerospace quality engineer
+
+      iatf16949:
+        name: IATF 16949 — Automotive QMS
+        coverage: not_covered
+        reason: >
+          Automotive QMS adds APQP, PPAP, FMEA-AIAG/VDA, and customer-specific
+          requirements (CSR) workflows not present in ISO 9001 baseline.
+        escalate_to: Automotive quality consultant
+
+      iso14001:
+        name: ISO 14001 — Environmental Management
+        coverage: not_covered
+        reason: Environmental aspects/impacts assessment not modeled
+        escalate_to: Environmental management consultant
+
+      iso27001:
+        name: ISO/IEC 27001 — Information Security Management
+        coverage: not_covered
+        reason: Annex A controls and risk assessment methodology not modeled
+        escalate_to: Information security officer / ISMS consultant
+
+  software_engineering:
+    name: Software Engineering & DevOps
+    description: Patterns for designing, deploying and reverting software systems.
+    domains:
+
+      web_services:
+        name: Web Services / Microservices
+        coverage: partial
+        confidence: 0.70
+        variants:
+          - id: generic_blue_green
+            name: Blue/Green deployment with automated rollback
+            source: Industry-standard pattern (Fowler, ThoughtWorks)
+            confidence: 0.70
+            production_validated: true
+        boundary_conditions:
+          - Service-mesh circuit-breaker patterns not modeled
+          - Saga / compensating-transaction patterns not modeled
+        escalate_to: SRE / Platform engineer
+
+      ml_systems:
+        name: ML Systems / MLOps
+        coverage: partial
+        confidence: 0.70
+        variants:
+          - id: feature_flag_checkpoint
+            name: Feature flag + model checkpoint rollback
+            source: Industry-standard MLOps pattern
+            confidence: 0.70
+        boundary_conditions:
+          - Model registry-level governance not modeled
+          - Drift detection + auto-rollback not modeled
+        escalate_to: ML Engineer / MLOps lead
+
+      embedded_systems:
+        name: Embedded / Firmware Systems
+        coverage: not_covered
+        reason: >
+          Firmware reversibility requires hardware-specific OTA mechanisms,
+          dual-bank flash patterns, and safety-critical considerations.
+        escalate_to: Embedded systems engineer
+
+      distributed_systems:
+        name: Distributed Systems (consensus, replication)
+        coverage: not_covered
+        reason: >
+          Raft/Paxos rollback, eventual-consistency reconciliation and
+          partition-tolerance trade-offs not yet modeled.
+        escalate_to: Distributed systems architect
+
+  ai_ml:
+    name: AI / Machine Learning Systems
+    description: Patterns specific to AI agents, LLMs and ML lifecycle.
+    domains:
+
+      llm_agents:
+        name: LLM-based autonomous agents
+        coverage: partial
+        confidence: 0.65
+        variants:
+          - id: tool_permission_matrix
+            name: Tool permission matrix + human-review gates
+            source: Internal ForgeMind pattern
+            confidence: 0.65
+        boundary_conditions:
+          - Multi-agent coordination patterns not modeled
+          - Long-horizon planning rollback not modeled
+        escalate_to: AI/ML engineer with agent-systems experience
+
+      classical_ml:
+        name: Classical ML (training/serving pipelines)
+        coverage: partial
+        confidence: 0.65
+        variants:
+          - id: shadow_then_canary
+            name: Shadow deployment then canary
+            source: Industry pattern
+            confidence: 0.65
+        escalate_to: ML Engineer
+
+  operations_methodops:
+    name: Operations & MethodOps
+    description: Process design, flow management, and operational improvement methods.
+    domains:
+
+      lean:
+        name: Lean Manufacturing / Lean Office
+        coverage: partial
+        confidence: 0.70
+        variants:
+          - id: waste_scan_8wastes
+            name: 8-Wastes scan generator
+            source: Internal ForgeMind generator (Lean canonical)
+            confidence: 0.70
+        boundary_conditions:
+          - Value-stream mapping not modeled
+        escalate_to: Lean practitioner / Continuous improvement lead
+
+      six_sigma:
+        name: Six Sigma (DMAIC / DMADV)
+        coverage: partial
+        confidence: 0.70
+        variants:
+          - id: rdmaicsi_extended
+            name: RDMAICSI phase generator (DMAIC extended)
+            source: Internal ForgeMind generator
+            confidence: 0.70
+        escalate_to: Six Sigma Black Belt
+
+      theory_of_constraints:
+        name: Theory of Constraints (TOC)
+        coverage: not_covered
+        reason: 5 Focusing Steps, Thinking Processes, Throughput Accounting not modeled
+        escalate_to: TOC Jonah / TOC consultant
+
+      kanban_flow:
+        name: Kanban / Flow Engineering
+        coverage: not_covered
+        reason: WIP limits, flow metrics, CFD analytics not modeled
+        escalate_to: Kanban practitioner
+
+      itil:
+        name: ITIL (IT Service Management)
+        coverage: not_covered
+        reason: ITIL process catalog (incident, change, problem) not modeled
+        escalate_to: ITIL practitioner
+
+  risk_management:
+    name: Risk Management
+    description: Identification, assessment, treatment and monitoring of risk.
+    domains:
+
+      operational_risk:
+        name: Operational risk (project-level)
+        coverage: partial
+        confidence: 0.65
+        variants:
+          - id: risk_register_generator
+            name: Risk register with probability × impact scoring
+            source: Internal ForgeMind generator
+            confidence: 0.65
+        escalate_to: Risk manager / Project risk officer
+
+      enterprise_risk:
+        name: Enterprise Risk Management (ERM)
+        coverage: not_covered
+        reason: COSO ERM framework, risk appetite statements not modeled
+        escalate_to: Chief Risk Officer / ERM consultant
+
+      strategic_risk:
+        name: Strategic risk (geopolitical, market, reputational)
+        coverage: not_covered
+        reason: Scenario planning, strategic optionality not modeled
+        escalate_to: Strategy consultant
+
+      cyber_risk:
+        name: Cybersecurity risk
+        coverage: not_covered
+        reason: NIST CSF / threat modeling / STRIDE not modeled
+        escalate_to: Information security officer
+
+  business_analysis:
+    name: Business Analysis & Requirements
+    description: Eliciting, modeling and managing requirements.
+    domains:
+
+      requirements_engineering:
+        name: Requirements engineering (functional/non-functional)
+        coverage: partial
+        confidence: 0.60
+        variants:
+          - id: charter_acceptance_criteria
+            name: Project charter + acceptance criteria generators
+            source: Internal ForgeMind generators
+            confidence: 0.60
+        escalate_to: Business analyst (BABOK-certified)
+
+      stakeholder_analysis:
+        name: Stakeholder analysis & engagement
+        coverage: not_covered
+        reason: Power/interest grids, salience modeling not deeply modeled
+        escalate_to: Business analyst / Change manager
+
+# -----------------------------------------------------------------------------
+# Out-of-scope by design — disciplines ForgeMind explicitly will NOT advise on
+# until/unless a qualified expert contributes patterns.
+# -----------------------------------------------------------------------------
+out_of_scope_by_design:
+
+  nuclear_systems:
+    reason: Requires NRC / IAEA / national-regulator expertise
+    escalate_to: Nuclear systems engineer / Regulator
+    rationale: Consequence-of-error too high for generic advice
+
+  defense_classified:
+    reason: Requires security clearance and classified-systems expertise
+    escalate_to: Defense systems engineer
+    rationale: Generic open-source tool cannot operate in classified context
+
+  biomedical_clinical_trials:
+    reason: Requires bioethics + FDA/EMA + clinical trial expertise (GCP)
+    escalate_to: Clinical research associate / Bioethics committee
+    rationale: Human-subjects ethics out of scope for a planning tool
+
+  legal_advice:
+    reason: ForgeMind structures planning, does not give legal advice
+    escalate_to: Licensed legal counsel
+    rationale: Unauthorized practice of law is a regulated activity
+
+  financial_advice_regulated:
+    reason: Regulated financial advice requires licensed advisors
+    escalate_to: Licensed financial advisor / Compliance officer
+    rationale: Securities/banking advice subject to jurisdictional licensing
+
+  medical_diagnosis:
+    reason: Diagnosis is the practice of medicine
+    escalate_to: Licensed physician
+    rationale: Patient harm risk + regulated activity

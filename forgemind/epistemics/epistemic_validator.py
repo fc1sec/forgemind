@@ -88,14 +88,22 @@ class EpistemicValidator:
         "industry_best_practice": 0.70,  # With citation
     }
 
-    def __init__(self, plugin_registry=None):
+    def __init__(self, plugin_registry=None, taxonomy=None):
         """
         Initialize validator.
 
         Args:
             plugin_registry: Optional PluginRegistry to check domain expertise
+            taxonomy: Optional DisciplineTaxonomy. If omitted, the bundled
+                disciplines.yaml is loaded lazily on first use. Passing one
+                explicitly is useful in tests to control coverage claims.
         """
         self.plugin_registry = plugin_registry
+        self._taxonomy = taxonomy
+
+        # Legacy hardcoded fallbacks — preserved so the validator still works
+        # if the taxonomy YAML is unavailable. The taxonomy, when loaded,
+        # supersedes these.
         self.known_unknowns: set[str] = {
             "hardware_firmware",
             "government_tender",
@@ -106,6 +114,19 @@ class EpistemicValidator:
             "ai_ml": "checkpoint restore + feature flags only",
             "software": "git + blue-green, missing: service mesh",
         }
+
+    @property
+    def taxonomy(self):
+        """Lazily load and cache the discipline taxonomy."""
+        if self._taxonomy is None:
+            try:
+                from forgemind.disciplines import get_taxonomy
+
+                self._taxonomy = get_taxonomy()
+            except (FileNotFoundError, ValueError, ImportError):
+                # Fall back to hardcoded sets if YAML missing/malformed
+                self._taxonomy = None
+        return self._taxonomy
 
     def validate_output(
         self,
@@ -248,15 +269,36 @@ class EpistemicValidator:
         return sum(scores) / len(scores)
 
     def _is_unsupported_domain(self, domain: str) -> bool:
-        """Check if domain is completely unsupported."""
+        """Check if domain is completely unsupported.
+
+        Consults the discipline taxonomy when available; falls back to the
+        hardcoded set otherwise.
+        """
+        if self.taxonomy is not None:
+            return self.taxonomy.must_escalate(domain)
         return domain in self.known_unknowns
 
     def _is_partial_domain(self, domain: str) -> bool:
-        """Check if domain is partially supported."""
+        """Check if domain is partially supported.
+
+        Consults the discipline taxonomy when available; falls back to the
+        hardcoded set otherwise.
+        """
+        if self.taxonomy is not None:
+            from forgemind.disciplines import Coverage
+
+            return self.taxonomy.coverage_for(domain) == Coverage.PARTIAL
         return domain in self.partial_domains
 
     def _get_escalation_contact(self, domain: str) -> str:
-        """Get who to escalate to for this domain."""
+        """Get who to escalate to for this domain.
+
+        Consults the discipline taxonomy when available; falls back to the
+        legacy contact map otherwise.
+        """
+        if self.taxonomy is not None:
+            return self.taxonomy.escalation_contact(domain)
+
         contacts = {
             "iso9001": "QMS expert / ISO auditor",
             "software": "DevOps / SRE engineer",
