@@ -8,7 +8,6 @@ from rich.console import Console
 from rich.table import Table
 
 from forgemind import __version__
-from forgemind.cli.version import check_version_availability
 from forgemind.core.analysis import analyze_project
 from forgemind.core.classifier import classify_domain
 from forgemind.exporters.json_exporter import export_json
@@ -18,22 +17,6 @@ app = typer.Typer(
     help="ForgeMind: MethodOps engine for AI-assisted project execution readiness"
 )
 console = Console()
-
-
-def app_callback(
-    skip_version_check: bool = typer.Option(
-        False,
-        "--skip-version-check",
-        help="Skip version availability check (for testing or CI/CD)",
-    )
-) -> None:
-    """App-level callback to check version before any command runs."""
-    # Run version check non-blocking (will fail silently on network errors)
-    check_version_availability(skip=skip_version_check)
-
-
-# Register the callback with the app
-app.callback(invoke_without_command=False)(app_callback)
 
 
 @app.command()

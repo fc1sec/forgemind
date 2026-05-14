@@ -1,5 +1,7 @@
 """Domain-specific backlog generation."""
 
+from __future__ import annotations
+
 
 def generate_backlog(domain: str, project_input) -> list[dict]:
     """Generate prioritized backlog items."""

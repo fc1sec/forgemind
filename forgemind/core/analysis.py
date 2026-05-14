@@ -1,5 +1,7 @@
 """Complete project analysis orchestration."""
 
+from __future__ import annotations
+
 from forgemind.core.classifier import classify_domain
 from forgemind.core.intake import extract_project_slug, parse_markdown
 from forgemind.core.lean import generate_lean_analysis

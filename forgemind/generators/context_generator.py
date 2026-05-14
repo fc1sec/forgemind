@@ -1,5 +1,7 @@
 """Generate .context files for AI agent instruction context."""
 
+from __future__ import annotations
+
 from forgemind.generators.base import BaseGenerator
 from forgemind.schemas.project import ProjectAnalysis
 

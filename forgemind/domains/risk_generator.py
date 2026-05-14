@@ -1,5 +1,7 @@
 """Domain-specific risk generation."""
 
+from __future__ import annotations
+
 
 def generate_risks(domain: str, project_input) -> list[dict]:
     """Generate domain-specific risks."""

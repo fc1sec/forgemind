@@ -1,5 +1,7 @@
 """Generate AI-specific risk readiness checklists."""
 
+from __future__ import annotations
+
 from forgemind.generators.base import BaseGenerator
 from forgemind.schemas.project import ProjectAnalysis
 
