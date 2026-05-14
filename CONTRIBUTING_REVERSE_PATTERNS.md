@@ -22,6 +22,112 @@ ForgeMind's job is to codify these constraints into plugins so users understand:
 
 ---
 
+## v1.2.x Architecture: Variants, Taxonomy, Attribution
+
+The guide below (Phases 1–6) still applies. This section adds the three
+v1.2.x concepts every modern contribution must address.
+
+### 1. Variants within a domain
+
+A single domain can hold multiple **validated variants**. ISO 9001 ships
+two today (CeSPI UNLP 8-state from production; industry-common
+minimalist 5-state). The consultant offers the user a choice; the
+plugin selects the right state machine at construction time.
+
+```python
+class ISO9001ReversePattern(ReverseStatePattern):
+    VARIANT_CESPI_8STATE = "cespi_unlp_8state"
+    VARIANT_MINIMALIST_5STATE = "iso9001_minimalist_5state"
+
+    STATE_MACHINE = {...}              # CeSPI 8-state
+    MINIMALIST_STATE_MACHINE = {...}    # minimalist 5-state
+
+    VARIANTS = {
+        VARIANT_CESPI_8STATE: STATE_MACHINE,
+        VARIANT_MINIMALIST_5STATE: MINIMALIST_STATE_MACHINE,
+    }
+
+    def __init__(self, variant_id: str | None = None):
+        self.variant_id = variant_id or VARIANT_CESPI_8STATE
+        self.STATE_MACHINE = self.VARIANTS[self.variant_id]
+```
+
+**A domain is `partial` until 1+ variants ship with tests, `covered` once
+2+ ship.** Never claim `covered` from a single source.
+
+### 2. Declarative coverage in `disciplines.yaml`
+
+Every plugin contribution MUST update `forgemind/data/disciplines.yaml`.
+This file is the single source of truth for ForgeMind's coverage and
+drives `forgemind capabilities`, `forgemind explain-limits`,
+`forgemind compare-variants` and the consultant's calibration dialog.
+
+```yaml
+quality_management:
+  domains:
+    iso9001:
+      name: ISO 9001:2015 — General QMS
+      coverage: partial                    # never claim 'covered' with 1 variant
+      confidence: 0.85
+      variants:
+        - id: cespi_unlp_8state
+          name: CeSPI UNLP 8-state document lifecycle
+          source: iso-gestion (CeSPI UNLP)
+          url: https://github.com/Desarrollo-CeSPI/iso-gestion
+          license: MIT
+          confidence: 0.85
+          production_validated: true
+          since: "2014"
+          scope_evidence: Two ISO 9001:2015 certified scopes, 30+ users
+          when_to_choose:              # required for compare-variants
+            - Medium-to-large organization with multiple stakeholders
+            - Distinct authorities for reviewer vs approver required
+          pros:                        # required for compare-variants
+            - Stronger audit trail (more discrete state transitions)
+            - Distinct role responsibilities per phase
+          cons:                        # required for compare-variants
+            - Higher ceremony — slower flow for small teams
+      boundary_conditions:
+        - Industry-specific extensions (pharma, aerospace) NOT modeled
+      escalate_to: ISO 9001 lead auditor / QMS consultant
+```
+
+Required fields per variant: `id`, `name`, `confidence`, `when_to_choose`,
+`pros`, `cons`. The decision-support fields drive
+`forgemind compare-variants` and the consultant's variant question — a
+variant without them cannot guide users.
+
+### 3. Attribution (ATTRIBUTIONS.md)
+
+If your pattern is derived from a real external source (and most should
+be), you MUST update `ATTRIBUTIONS.md` with:
+
+- Source URL
+- Author / organization
+- License (MIT/Apache 2.0/BSD/CC-BY/CC0 — copyleft sources are usable
+  for pattern *codification* only, not for code redistribution)
+- A short description of what ForgeMind uses (the *patterns*) and
+  what it does NOT redistribute (the upstream code, UI, schemas)
+
+Mirror the format of the existing iso-gestion entry.
+
+### 4. Self-test commands
+
+After your contribution, run these locally before submitting:
+
+```bash
+pytest tests/ -v                          # all tests still pass
+ruff check .                              # lint clean
+forgemind capabilities                    # your domain appears with right coverage
+forgemind explain-limits <your_domain>    # variants + boundary conditions render
+forgemind compare-variants <your_domain>  # decision card renders for 2+ variants
+```
+
+If any of these fail or produce empty sections, your contribution isn't
+ready.
+
+---
+
 ## How to Contribute a Reverse Pattern
 
 ### Phase 1: Research Your Domain
@@ -534,7 +640,29 @@ Pattern includes 5+ realistic examples:
 ## Questions?
 
 See **CONTRIBUTING_PRINCIPLES.md** for philosophy.
-See **README.md** for example plugins and test patterns.
-Open an issue: `New Pattern Contribution Question`
+See **README.md** for the consultant workflow (`capabilities`, `consult`,
+`compare-variants`, `followup`, `history`) that consumes your contribution.
+See **ATTRIBUTIONS.md** for the format used to credit upstream sources.
+See **forgemind/plugins/iso9001_pattern.py** + the two iso9001 variants
+in `disciplines.yaml` for the reference implementation.
+Open an issue: `[reverse-pattern] <your domain or question>`.
+
+---
+
+## What's out of scope by design
+
+ForgeMind explicitly will NEVER advise on the following, even if patterns
+are contributed:
+
+- `nuclear_systems`               — NRC/IAEA expertise + consequence-of-error
+- `defense_classified`            — security clearance required
+- `biomedical_clinical_trials`    — bioethics + GCP expertise
+- `legal_advice`                  — unauthorized practice of law
+- `financial_advice_regulated`    — licensed advisor required
+- `medical_diagnosis`             — practice of medicine
+
+These are declared under `out_of_scope_by_design` in `disciplines.yaml`.
+Contributions extending the *escalation contact* for these entries are
+welcome; contributions trying to make ForgeMind advise on them are not.
 
 Thank you for helping ForgeMind codify domain expertise!

@@ -1,10 +1,20 @@
 # ForgeMind
 
-**The readiness layer before AI agents build.**
+**A universal multidisciplinary consultant for project readiness.**
 
-ForgeMind turns vague ideas, issues, and project notes into structured, governed, agent-ready work packages. It helps teams ensure work is worth executing before agents (or humans) build it.
+ForgeMind acts as a calibrated consultant: it asks targeted questions about
+the scope, discipline and variant of your project, discloses what it knows
+and what it does NOT cover, then turns your project notes into structured,
+governed, agent-ready work packages. It refuses to advise outside its
+declared scope rather than improvising.
 
-**Core Positioning:** AI agents can execute fast. ForgeMind helps teams make sure the work is worth executing before agents build.
+**Core positioning.** AI agents and human teams can execute fast. ForgeMind
+helps you make sure the work is worth executing — *and that the advice you
+follow is grounded in real, attributed expertise*, not speculation.
+
+Run `forgemind capabilities` at any time to see exactly which disciplines,
+domains and variants ForgeMind covers, and `forgemind explain-limits <domain>`
+to read the boundary conditions it discloses.
 
 ---
 
@@ -24,6 +34,57 @@ But agents still execute against vague requirements, unvalidated assumptions, an
 ForgeMind bridges that gap. It structures the work *before* the agent starts. Clear objectives. Mapped risks. Validated assumptions. Defined success. Human review gates.
 
 Not runtime monitoring. Pre-execution readiness.
+
+---
+
+## The Consultant Workflow
+
+ForgeMind ships two flows. Use the one that fits your stakes.
+
+### Direct mode — `forgemind intake <project.md>`
+One-shot: skip calibration, generate the 17 documents directly. Use this
+when you've already calibrated, when scripting in CI, or for low-stakes
+exploration.
+
+### Consultant mode — `forgemind consult <project.md>`
+A real consultant doesn't dump 17 documents blindly. It calibrates first:
+
+```
+1. forgemind capabilities                  ← "what disciplines do you cover?"
+2. forgemind compare-variants iso9001      ← "contrast the variants you know"
+3. forgemind consult my_project.md         ← calibrated 4-step dialog,
+   ├── discipline (e.g. quality_management)    rehúses unsupported domains,
+   ├── domain (e.g. iso9001)                   surfaces boundary conditions,
+   ├── variant (e.g. CeSPI 8-state)            biases defaults by your history
+   └── confirm & generate
+4. forgemind followup forgemind_outputs/X  ← "drill into one decision"
+5. forgemind history                       ← "what have I calibrated before?"
+```
+
+Every successful `consult` writes both `CONSULTANT_CALIBRATION.md` (human)
+and `consultant_calibration.json` (machine) alongside the 17 outputs, so a
+reviewer can always answer *"what did the consultant calibrate to?"* without
+re-running the session.
+
+The consultant refuses (exit code 2 + escalation contact) when:
+- the project maps to an out-of-scope-by-design domain (e.g. tenders → legal
+  advice, nuclear systems, classified defense, medical diagnosis, …); or
+- the user picks a `not_covered` domain (e.g. ISO 13485, AS9100, IATF 16949
+  — patterns not yet contributed).
+
+### Self-knowledge
+
+ForgeMind's coverage is **declarative**, sourced from
+`forgemind/data/disciplines.yaml`. Today (v1.2.x):
+
+```
+6 disciplines · 23 domains · 9 partial · 14 not covered · 6 out-of-scope by design
+```
+
+Two real, attributed variants are shipped for ISO 9001 (CeSPI UNLP 8-state +
+industry-common minimalist 5-state). All other partial domains have one
+generic pattern each. See `ATTRIBUTIONS.md` for upstream credit and
+`CONTRIBUTING_REVERSE_PATTERNS.md` for how to contribute new variants.
 
 ---
 
@@ -311,6 +372,54 @@ forgemind export forgemind_projects/your_project.md --format json
 ### `forgemind init`
 Initialize workspace with sample project and directories.
 
+### `forgemind capabilities [--discipline X]`
+Show ForgeMind's declared coverage map: 6 disciplines, 23 domains, with
+per-domain coverage tier (`covered` / `partial` / `not_covered`), confidence,
+and escalation contact. Filter to a single discipline with `--discipline`.
+
+### `forgemind explain-limits <domain>`
+Honest disclosure for one domain: validated variants ForgeMind knows about
+(with sources and confidence), known gaps within those variants, and the
+domain's escalation contact. Use BEFORE relying on ForgeMind's advice in
+regulated or high-stakes contexts.
+
+### `forgemind compare-variants <domain>`
+Side-by-side decision support card across the variants ForgeMind knows for
+a domain: when to choose each variant, what you gain, what you give up.
+Sources and confidence per variant are surfaced. Returns exit 0 with a
+"nothing to compare" message for single-variant domains.
+
+### `forgemind consult <project_file>`
+**The consultant mode** — calibrate before generating. Walks the user through
+a 4-step adaptive dialog (discipline → domain → variant → confirm), refuses
+unsupported domains with exit code 2 + escalation contact, and only then
+generates the 17 outputs. Writes both `CONSULTANT_CALIBRATION.md` and
+`consultant_calibration.json` alongside the documents.
+
+Defaults are biased by your `forgemind history` so steady-state workflows
+become "press Enter" while remaining fully overridable.
+
+Flags:
+- `--auto-accept` — pick defaults without prompting (CI / scripting)
+- `--output-dir <path>` — override the default output directory
+
+### `forgemind followup <output_dir>`
+Revisit specific decisions in depth after a `consult` session. Loads the
+calibration sidecar and lets you drill into one topic without re-running
+analysis.
+
+Modes:
+- interactive (default) — menu loop
+- `--topic <key>` — render one topic and exit (`variant`, `risks`,
+  `acceptance`, `escalation`)
+- `--auto-accept` — print menu and exit (CI-friendly)
+
+### `forgemind history [--limit N] [--clear]`
+View or erase ForgeMind's calibration memory. Each successful `consult`
+appends one entry to a local JSONL file (`~/.forgemind/history.jsonl`,
+overridable via `FORGEMIND_HISTORY_PATH`). The store is LOCAL ONLY — no
+telemetry is collected or transmitted.
+
 ### `forgemind intake <project_file>`
 Analyze project and generate 17 structured output documents:
 
@@ -551,6 +660,27 @@ For process improvement:
 - ✅ Confidence scoring and scope validation guardrails
 - ✅ Community contribution guide (CONTRIBUTING_REVERSE_PATTERNS.md)
 - ✅ 28 new tests for plugin system (90%+ coverage)
+- ✅ ISO 9001 plugin upgraded to 8-state CeSPI UNLP production variant (attributed)
+- ✅ Second ISO 9001 variant: minimalist 5-state (industry-common pattern)
+
+### v1.2.x (Current) — Consultant role ✅
+Six-layer consultant model, all delivered and tested:
+- ✅ **Phase D — Disciplines taxonomy**: declarative coverage map in
+  `forgemind/data/disciplines.yaml`; 6 disciplines · 23 domains · 6
+  out-of-scope-by-design. Exposed via `forgemind capabilities` and
+  `forgemind explain-limits`.
+- ✅ **Phase C — Consult dialog**: `forgemind consult` walks an adaptive
+  4-step calibration (discipline → domain → variant → confirm) before
+  generating, with a structured refusal protocol.
+- ✅ **Variant pluralism**: a domain can declare multiple validated
+  variants; the consultant offers each with attribution and confidence.
+- ✅ **Variant comparison**: `forgemind compare-variants` renders a
+  side-by-side decision card (when-to-choose, pros, cons).
+- ✅ **Follow-up**: `forgemind followup` reads the calibration sidecar
+  and drills into one decision (variant, risks, acceptance, escalation)
+  without re-running analysis.
+- ✅ **Persistent memory**: `forgemind history` records each calibration
+  locally and biases future defaults toward prior choices.
 
 ### v1.3 (Medium term) — MethodOps Learning Layer
 - Knowledge graph schema for capturing project outcomes
@@ -645,8 +775,9 @@ For issues, feature requests, or feedback:
 
 ---
 
-**Built with:** Python 3.9+, Typer, Pydantic, Jinja2, Rich  
-**Inspired by:** RDMAICSI, Peter Senge, Lean, Six Sigma, ISO/QMS  
-**Philosophy:** Structure work rigorously. Reverse safely. Learn continuously.  
-**Status:** v1.2.1 update safety release • Beta maturity • Production-ready  
-**Safety:** ✅ Backward compatible • Safe updates • Easy rollback
+**Built with:** Python 3.9+, Typer, Pydantic, Jinja2, Rich
+**Inspired by:** RDMAICSI, Peter Senge, Lean, Six Sigma, ISO/QMS
+**Grounded in (attributed):** iso-gestion (CeSPI UNLP, MIT) — see `ATTRIBUTIONS.md`
+**Philosophy:** Structure work rigorously. Refuse cleanly. Calibrate before generating.
+**Status:** v1.2.x consultant role • Beta maturity • 190 tests passing • CI green on Python 3.9 / 3.11 / 3.12
+**Safety:** ✅ Backward compatible · Local-only · No telemetry · Refuses out-of-scope domains
