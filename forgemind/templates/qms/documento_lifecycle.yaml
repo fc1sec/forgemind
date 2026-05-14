@@ -1,0 +1,162 @@
+# =============================================================================
+# QMS Document Entity — Schema and Lifecycle Template
+# =============================================================================
+#
+# Derived from the `documento` entity in iso-gestion (CeSPI UNLP, MIT licensed),
+# https://github.com/Desarrollo-CeSPI/iso-gestion
+#
+# Use this template when modeling controlled documents in an ISO 9001:2015 QMS.
+# Each field maps to a normative requirement of the standard.
+# =============================================================================
+
+entity: document
+domain: iso9001
+compliance: ISO 9001:2015 §7.5 (Documented information)
+source_attribution:
+  project: iso-gestion
+  organization: CeSPI UNLP
+  url: https://github.com/Desarrollo-CeSPI/iso-gestion
+  license: MIT
+
+# -----------------------------------------------------------------------------
+# Required fields (every controlled document must carry these)
+# -----------------------------------------------------------------------------
+fields:
+  id:
+    type: integer
+    required: true
+    description: Unique identifier within the QMS
+    iso_reference: "§7.5.2 — identification"
+
+  name:
+    type: string
+    required: true
+    max_length: 255
+    description: Human-readable document title
+    iso_reference: "§7.5.2 — title/description"
+
+  description:
+    type: text
+    required: false
+    description: Purpose, audience, and intended use
+
+  type:
+    type: foreign_key
+    target: document_type
+    required: true
+    description: e.g. Policy, Procedure, Work Instruction, Record, Form
+    iso_reference: "§7.5.2 — format/type"
+
+  revision:
+    type: integer
+    required: true
+    default: 0
+    description: Sequential revision counter (increments on each new approved version)
+    iso_reference: "§7.5.3.2 — control of revision"
+
+  state:
+    type: foreign_key
+    target: document_state
+    required: true
+    description: Current lifecycle state (see iso9001_reverse_pattern.yaml)
+
+  storage_path:
+    type: string
+    required: false
+    max_length: 255
+    description: URI / file-system path / object-store key for the document content
+
+# -----------------------------------------------------------------------------
+# Lifecycle date fields (required for audit trail per §8.5.2)
+# -----------------------------------------------------------------------------
+lifecycle_dates:
+  created_at:
+    type: timestamp
+    required: true
+    description: When the document was first created
+    iso_reference: "§8.5.2 — traceability of creation"
+
+  reviewed_at:
+    type: timestamp
+    required: false
+    description: When the review was completed (Reviewed state)
+
+  approved_at:
+    type: timestamp
+    required: false
+    description: When approval was recorded (Approved state)
+
+  in_force_from:
+    type: timestamp
+    required: false
+    description: Effective date when the document became active (In Force state)
+
+  retired_at:
+    type: timestamp
+    required: false
+    description: When the document became Obsolete
+
+# -----------------------------------------------------------------------------
+# Role assignments (who is accountable for each lifecycle phase)
+# -----------------------------------------------------------------------------
+role_assignments:
+  editor:
+    type: foreign_key
+    target: user
+    required: true
+    description: Person responsible for drafting/editing
+
+  reviewer:
+    type: foreign_key
+    target: user
+    required: false
+    description: Assigned reviewer (set when transitioning to Under Review)
+
+  approver:
+    type: foreign_key
+    target: user
+    required: false
+    description: Approver (set when transitioning to Under Approval / Approved)
+    typical_role: quality_manager
+
+  audience:
+    type: foreign_key_list
+    target: role
+    required: false
+    description: Distribution list — roles authorized to read the document
+    iso_reference: "§7.5.3 — controlled distribution"
+
+# -----------------------------------------------------------------------------
+# Multi-scope support (alcances) — a document may apply to several certified
+# scopes of the QMS (e.g. two ISO 9001 certified business units)
+# -----------------------------------------------------------------------------
+scopes:
+  type: foreign_key_list
+  target: scope
+  required: true
+  min_items: 1
+  description: One or more ISO 9001 certified scopes that this document applies to
+  iso_reference: "§4.3 — Determining the scope of the QMS"
+
+# -----------------------------------------------------------------------------
+# Audit trail (separate `document_log` table — populated on every change)
+# -----------------------------------------------------------------------------
+audit_trail:
+  table: document_log
+  populated_on:
+    - create
+    - state_transition
+    - field_change
+    - revision_increment
+  retention: "Per organization's retention policy; minimum 3 years for QMS records"
+  iso_reference: "§7.5.3.2 + §8.5.2"
+  required_log_fields:
+    - document_id
+    - revision
+    - state
+    - changed_field (optional, for field-level changes)
+    - old_value (optional)
+    - new_value (optional)
+    - actor (user_id)
+    - timestamp
+    - reason (free text — required for state transitions)

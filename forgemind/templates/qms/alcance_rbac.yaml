@@ -1,0 +1,184 @@
+# =============================================================================
+# QMS Scope-based Role-Based Access Control (Alcances + Roles)
+# =============================================================================
+#
+# Derived from the `alcances`, `usuarios_alcance`, `rol`, and
+# `usuario_documento_rol` entities in iso-gestion (CeSPI UNLP, MIT licensed),
+# https://github.com/Desarrollo-CeSPI/iso-gestion
+#
+# Models the scope-based RBAC that ISO 9001:2015 §4.3 requires: an organization
+# can certify ONE OR MORE distinct scopes (business units, locations, processes),
+# and access to QMS records must be controlled per scope.
+# =============================================================================
+
+entity: scope_rbac_model
+domain: iso9001
+compliance: ISO 9001:2015 §4.3 (Determining the scope), §7.5.3 (Control of access)
+source_attribution:
+  project: iso-gestion
+  organization: CeSPI UNLP
+  url: https://github.com/Desarrollo-CeSPI/iso-gestion
+  license: MIT
+
+# -----------------------------------------------------------------------------
+# Scopes (alcances) — independently certified perimeters within an organization
+# -----------------------------------------------------------------------------
+scopes:
+  description: >
+    A scope represents a certified perimeter of the QMS. An organization may
+    hold multiple ISO 9001 certifications, each covering a distinct scope
+    (e.g. "IT Services Division", "Manufacturing Plant Mendoza").
+
+  fields:
+    id:
+      type: integer
+      required: true
+    name:
+      type: string
+      required: true
+      max_length: 100
+      description: Human-readable scope name
+    certification_id:
+      type: string
+      required: false
+      description: External certificate number (issued by the certification body)
+    certified_since:
+      type: date
+      required: false
+
+  examples:
+    - name: "IT Services — UNLP"
+      certification_id: "IRAM 9001-2015 #1234"
+    - name: "Library Management — CeSPI"
+      certification_id: "IRAM 9001-2015 #1235"
+
+# -----------------------------------------------------------------------------
+# Roles — abstract permissions decoupled from scope
+# -----------------------------------------------------------------------------
+roles:
+  description: >
+    A role groups a set of permissions. Roles are NOT bound to a specific scope;
+    a user is granted a role WITHIN a scope (see assignments below).
+
+  fields:
+    id:
+      type: integer
+      required: true
+    name:
+      type: string
+      required: true
+    description:
+      type: text
+      required: false
+    permissions:
+      type: list
+      required: true
+      description: List of capability flags (e.g. "edit_documents", "approve_changes")
+
+  standard_roles:
+    document_author:
+      permissions:
+        - draft_documents
+        - request_review
+        - accept_review_return
+      description: Can create and edit documents in their scope
+
+    reviewer:
+      permissions:
+        - read_documents_in_scope
+        - return_to_author
+        - approve_review
+        - reopen_review
+      description: Reviews documents for technical/operational correctness
+
+    quality_manager:
+      permissions:
+        - all_document_actions
+        - approve_documents
+        - authorize_reversals
+        - manage_change_requests
+        - withdraw_in_force_documents
+      description: QMS-wide quality authority (often the Quality Director)
+
+    auditor:
+      permissions:
+        - read_all_records_in_scope
+        - read_audit_trail
+      description: Internal or external auditor — read-only access
+
+    operator:
+      permissions:
+        - read_in_force_documents
+      description: Operational personnel who consume in-force documents
+
+# -----------------------------------------------------------------------------
+# User assignments — the (user, scope, role) triple
+# -----------------------------------------------------------------------------
+user_assignments:
+  description: >
+    A user is granted a role WITHIN a scope. The same user may hold different
+    roles in different scopes (e.g. document_author in Scope A, auditor in Scope B).
+
+  fields:
+    user_id:
+      type: foreign_key
+      target: user
+      required: true
+    scope_id:
+      type: foreign_key
+      target: scope
+      required: true
+    role_id:
+      type: foreign_key
+      target: role
+      required: true
+    granted_at:
+      type: timestamp
+      required: true
+    granted_by:
+      type: foreign_key
+      target: user
+      required: true
+      description: Person who granted this assignment (for audit per §8.5.2)
+    revoked_at:
+      type: timestamp
+      required: false
+      description: When the assignment was revoked (null = still active)
+
+  constraints:
+    - "A user may have at most one role per scope"
+    - "All assignment grants and revocations MUST be auditable (§8.5.2)"
+    - "Revocation must NOT delete the assignment record; only set revoked_at"
+
+# -----------------------------------------------------------------------------
+# Per-document role overrides — optional, fine-grained access control
+# -----------------------------------------------------------------------------
+per_document_overrides:
+  description: >
+    For sensitive documents, an additional (user, document, role) override
+    can restrict or extend access beyond the default scope-based RBAC.
+  fields:
+    user_id:
+      type: foreign_key
+      target: user
+      required: true
+    document_id:
+      type: foreign_key
+      target: document
+      required: true
+    role_id:
+      type: foreign_key
+      target: role
+      required: true
+  use_cases:
+    - "Confidential document accessible only to a named subset of users"
+    - "Temporary access grant during an audit"
+
+# -----------------------------------------------------------------------------
+# Compliance notes
+# -----------------------------------------------------------------------------
+compliance_notes:
+  - "ISO 9001:2015 §7.5.3 requires controlled distribution of documented information"
+  - "Per-scope access aligns with §4.3 (Determining the scope of the QMS)"
+  - "All access grants/revocations must be auditable per §8.5.2"
+  - "This model does NOT replace your organization's identity provider (LDAP/SAML/SSO); it complements it"

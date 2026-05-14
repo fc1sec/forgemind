@@ -133,6 +133,83 @@ class TestISO9001Pattern:
         )
         assert has_audit_step, "Reversal plan should include audit trail step"
 
+    # -- 8-state machine (iso-gestion validated) --------------------------
+
+    def test_iso_gestion_eight_states_present(self):
+        """All 8 iso-gestion-validated states must be exposed."""
+        pattern = ISO9001ReversePattern()
+        names = {s.state_name for s in pattern.get_supported_states()}
+        expected = {
+            "Draft", "Created", "Under Review", "Reviewed",
+            "Under Approval", "Approved", "In Force", "Signed", "Obsolete",
+        }
+        # We expect at least the 8 from iso-gestion plus Signed (legal terminal)
+        missing = expected - names
+        assert not missing, f"Missing states: {missing}"
+
+    def test_created_state_reverts_to_draft(self):
+        """Created → Draft must be valid (author unlocks for editing)."""
+        pattern = ISO9001ReversePattern()
+        result = pattern.validate_state_transition("Created", "Draft")
+        assert result["is_valid"]
+        assert result["approval_role"] == "document_author"
+
+    def test_reviewed_to_under_review_valid(self):
+        """Reviewed → Under Review (reopen review) must be valid."""
+        pattern = ISO9001ReversePattern()
+        result = pattern.validate_state_transition("Reviewed", "Under Review")
+        assert result["is_valid"]
+
+    def test_under_approval_to_reviewed_valid(self):
+        """Under Approval → Reviewed (return for compliance fix) must be valid."""
+        pattern = ISO9001ReversePattern()
+        result = pattern.validate_state_transition("Under Approval", "Reviewed")
+        assert result["is_valid"]
+        assert result["approval_role"] == "quality_manager"
+
+    def test_in_force_to_approved_requires_change_request(self):
+        """In Force (Vigente) → Approved must require a quality_manager approval."""
+        pattern = ISO9001ReversePattern()
+        result = pattern.validate_state_transition("In Force", "Approved")
+        assert result["is_valid"]
+        assert result["approval_role"] == "quality_manager"
+        # In Force withdrawal is the only path with non-zero data loss risk
+        assert result["data_loss"] == "low"
+
+    def test_in_force_plan_mentions_change_request(self):
+        """The In Force → Approved plan must reference §8.5.6 change request."""
+        pattern = ISO9001ReversePattern()
+        project = self._create_mock_project()
+        plan = pattern.generate_reversal_plan(
+            project=project,
+            current_state="In Force",
+            target_state="Approved",
+        )
+        text = " ".join(s.action.lower() for s in plan.steps)
+        assert "change request" in text
+        assert any("notify" in s.action.lower() for s in plan.steps)
+
+    def test_obsolete_cannot_be_reverted(self):
+        """Obsolete is a terminal state — no reversal allowed."""
+        pattern = ISO9001ReversePattern()
+        result = pattern.validate_state_transition("Obsolete", "In Force")
+        assert not result["is_valid"]
+
+    def test_can_revert_to_lists_use_only_known_states(self):
+        """Every 'can_revert_to' target must itself be a known state."""
+        pattern = ISO9001ReversePattern()
+        known = set(pattern.STATE_MACHINE.keys())
+        for state, config in pattern.STATE_MACHINE.items():
+            for target in config["can_revert_to"]:
+                assert target in known, (
+                    f"State {state} can_revert_to includes unknown state {target}"
+                )
+
+    def test_attribution_present_in_description(self):
+        """The plugin must attribute CeSPI UNLP per MIT license."""
+        pattern = ISO9001ReversePattern()
+        assert "CeSPI" in pattern.description or "iso-gestion" in pattern.description
+
     @staticmethod
     def _create_mock_project() -> ProjectAnalysis:
         """Create a mock ProjectAnalysis for testing."""
