@@ -30,7 +30,7 @@ def test_init_command(tmp_path):
     original_cwd = os.getcwd()
     try:
         os.chdir(tmp_path)
-        result = runner.invoke(app, ["init"])
+        result = runner.invoke(app, ["--skip-version-check", "init"])
         assert result.exit_code == 0
         assert Path("forgemind_projects").exists()
         assert Path("forgemind_outputs").exists()
@@ -45,9 +45,9 @@ def test_intake_command(tmp_path):
     original_cwd = os.getcwd()
     try:
         os.chdir(tmp_path)
-        runner.invoke(app, ["init"])
+        runner.invoke(app, ["--skip-version-check", "init"])
 
-        result = runner.invoke(app, ["intake", "forgemind_projects/sample_ai_project.md"])
+        result = runner.invoke(app, ["--skip-version-check", "intake", "forgemind_projects/sample_ai_project.md"])
         assert result.exit_code == 0
 
         # Check that output directory exists
@@ -82,9 +82,9 @@ def test_diagnose_command(tmp_path):
     original_cwd = os.getcwd()
     try:
         os.chdir(tmp_path)
-        runner.invoke(app, ["init"])
+        runner.invoke(app, ["--skip-version-check", "init"])
 
-        result = runner.invoke(app, ["diagnose", "forgemind_projects/sample_ai_project.md"])
+        result = runner.invoke(app, ["--skip-version-check", "diagnose", "forgemind_projects/sample_ai_project.md"])
         assert result.exit_code == 0
         assert "Diagnosis" in result.stdout or "Project" in result.stdout
     finally:
@@ -97,9 +97,9 @@ def test_gate_success(tmp_path):
     original_cwd = os.getcwd()
     try:
         os.chdir(tmp_path)
-        runner.invoke(app, ["init"])
+        runner.invoke(app, ["--skip-version-check", "init"])
 
-        result = runner.invoke(app, ["gate", "forgemind_projects/sample_ai_project.md"])
+        result = runner.invoke(app, ["--skip-version-check", "gate", "forgemind_projects/sample_ai_project.md"])
         # Sample project should be mostly complete
         assert result.exit_code == 0  # Should pass
     finally:
@@ -118,7 +118,7 @@ def test_gate_failure(tmp_path):
         incomplete = Path("forgemind_projects/incomplete.md")
         incomplete.write_text("# Incomplete Project\n\n(No sections filled)")
 
-        result = runner.invoke(app, ["gate", "forgemind_projects/incomplete.md"])
+        result = runner.invoke(app, ["--skip-version-check", "gate", "forgemind_projects/incomplete.md"])
         assert result.exit_code == 1  # Should fail
     finally:
         os.chdir(original_cwd)
@@ -130,11 +130,11 @@ def test_handoff_command(tmp_path):
     original_cwd = os.getcwd()
     try:
         os.chdir(tmp_path)
-        runner.invoke(app, ["init"])
+        runner.invoke(app, ["--skip-version-check", "init"])
 
         result = runner.invoke(
             app,
-            ["handoff", "forgemind_projects/sample_ai_project.md", "--target", "codex"]
+            ["--skip-version-check", "handoff", "forgemind_projects/sample_ai_project.md", "--target", "codex"]
         )
         assert result.exit_code == 0
         assert "Handoff" in result.stdout or "AGENT_HANDOFF" in result.stdout
@@ -148,11 +148,11 @@ def test_export_json(tmp_path):
     original_cwd = os.getcwd()
     try:
         os.chdir(tmp_path)
-        runner.invoke(app, ["init"])
+        runner.invoke(app, ["--skip-version-check", "init"])
 
         result = runner.invoke(
             app,
-            ["export", "forgemind_projects/sample_ai_project.md", "--format", "json"]
+            ["--skip-version-check", "export", "forgemind_projects/sample_ai_project.md", "--format", "json"]
         )
         assert result.exit_code == 0
         assert "json" in result.stdout.lower() or "exported" in result.stdout.lower()
