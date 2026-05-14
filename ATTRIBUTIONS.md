@@ -97,6 +97,37 @@ because the patterns are theirs even though no upstream code is copied.
 
 ---
 
+## Industry-standard deployment patterns — ai_ml domain
+
+The two `ai_ml` variants ForgeMind ships codify documented MLOps patterns.
+
+### Feature-flag + checkpoint rollback
+
+- **Pattern documented at**: MLOps community practice across MLflow,
+  Weights & Biases, LaunchDarkly, TensorFlow Serving, KServe.
+- **What ForgeMind uses**: canary-style rollout with feature flags routing
+  traffic to specific cohorts; checkpoint restore as rollback primitive.
+
+### Shadow deployment
+
+- **Primary references**:
+  - D. Sculley et al., *"Hidden Technical Debt in ML Systems"*,
+    NeurIPS 2015 (Google).
+  - D. Sato, A. Wider, C. Windheuser, *"Continuous Delivery for Machine
+    Learning"*, [martinfowler.com/articles/cd4ml.html](https://martinfowler.com/articles/cd4ml.html), 2019.
+  - Netflix Tech Blog posts on model shadowing.
+- **What ForgeMind uses**: the canonical shadowing semantics — new model
+  runs in parallel with the production model on the same input traffic;
+  only the production model's predictions reach users; shadow predictions
+  are logged for offline analysis. Rollback from the `Shadow` state is
+  operationally trivial (turn off the shadow logger); rollback from
+  `Production` is a serving-role swap.
+
+ForgeMind credits these sources because the shadow-deployment pattern is
+theirs; no upstream code is copied.
+
+---
+
 ## Reporting attribution issues
 
 If you are an author of a project whose patterns appear in ForgeMind and you

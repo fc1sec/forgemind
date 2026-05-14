@@ -393,10 +393,21 @@ class TestVariantComparison:
         assert result.stdout.lower().count("cons") >= 1
 
     def test_compare_variants_single_variant_domain_exits_zero(self):
-        """A domain with only one variant should not pretend to compare."""
+        """A domain with only one variant should not pretend to compare.
+
+        Every covered/partial domain in the bundled taxonomy now declares
+        2+ variants. To exercise the single-variant code path we provide an
+        ad-hoc domain. Use one of the not_covered domains that has a single
+        (implicit) variant — they hit a different branch (exit 0 with the
+        'only one variant' message is the contract for single-variant
+        partial domains; for not_covered domains the behaviour is the
+        'nothing to compare' message). Both branches print 'only one'
+        and exit 0.
+        """
         runner = CliRunner()
-        # ai_ml has one variant in the current taxonomy
-        result = runner.invoke(app, ["compare-variants", "ai_ml"])
+        # Use a domain known to have 0 or 1 variants in the taxonomy.
+        # operations.lean has only 1 variant in the taxonomy.
+        result = runner.invoke(app, ["compare-variants", "lean"])
         assert result.exit_code == 0
         assert "only one variant" in result.stdout.lower()
 

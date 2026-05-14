@@ -74,11 +74,6 @@ class TestInstantiateForVariant:
         # Default is the CeSPI 8-state machine
         assert plugin.variant_id == "cespi_unlp_8state"
 
-    def test_ai_ml_plugin_ignores_variant_id_silently(self):
-        plugin = instantiate_for_variant(AIMLReversePattern, "any_value")
-        assert plugin is not None
-        assert plugin.domain == "ai_ml"
-
     def test_unknown_variant_for_iso9001_raises(self):
         # The plugin's constructor validates variant_id against VARIANTS;
         # an unknown id must surface as a ValueError so callers can react.
@@ -111,6 +106,32 @@ class TestInstantiateForVariant:
     def test_unknown_software_variant_raises(self):
         with pytest.raises(ValueError):
             instantiate_for_variant(SoftwareReversePattern, "not_a_real_software_variant")
+
+    # ----- ai_ml variants (feature_flag_checkpoint vs shadow_deployment) -----
+
+    def test_ai_ml_with_feature_flag_variant(self):
+        plugin = instantiate_for_variant(
+            AIMLReversePattern, "feature_flag_checkpoint"
+        )
+        assert plugin.variant_id == "feature_flag_checkpoint"
+        states = {s.state_name for s in plugin.get_supported_states()}
+        assert "Staging (Canary)" in states  # canary tier is in this variant
+        assert "Shadow" not in states         # shadow tier is NOT
+
+    def test_ai_ml_with_shadow_variant(self):
+        plugin = instantiate_for_variant(AIMLReversePattern, "shadow_deployment")
+        assert plugin.variant_id == "shadow_deployment"
+        states = {s.state_name for s in plugin.get_supported_states()}
+        assert "Shadow" in states              # shadow tier is in this variant
+        assert "Staging (Canary)" not in states  # canary tier is NOT
+
+    def test_ai_ml_default_is_feature_flag(self):
+        plugin = instantiate_for_variant(AIMLReversePattern, None)
+        assert plugin.variant_id == "feature_flag_checkpoint"
+
+    def test_unknown_ai_ml_variant_raises(self):
+        with pytest.raises(ValueError):
+            instantiate_for_variant(AIMLReversePattern, "not_a_real_ai_ml_variant")
 
 
 # ----------------------------------------------------------------------
@@ -273,6 +294,65 @@ class TestWriteVariantReversalPlan:
             line for line in text.splitlines() if line.startswith("| `Canary`")
         ]
         assert canary_rows, "Canary variant must include a `Canary` row in the table"
+
+    # ----- ai_ml variant differentiation -----
+
+    def test_shadow_variant_mentions_parallel_models_and_logger(self, tmp_path: Path):
+        project = tmp_path / "ml.md"
+        project.write_text(
+            "# ML Recommendation Model\n## Objective\nDeploy new recommendation model\n"
+            "## Context\nML production system\n## Scope\nInference path\n"
+            "## Current State\nProduction\n## Risks\nDegraded recommendations\n"
+            "## Success Criteria\nPrecision @10 within 2% of baseline\n",
+            encoding="utf-8",
+        )
+        analysis = analyze_project(str(project))
+        analysis.metadata.domain = "ai_ml"
+        out_dir = tmp_path / "outputs"
+        out_dir.mkdir()
+        path = write_variant_reversal_plan(
+            out_dir=out_dir,
+            analysis=analysis,
+            variant_id="shadow_deployment",
+            domain_id="ai_ml",
+        )
+        assert path is not None
+        text = path.read_text(encoding="utf-8")
+        # Shadow plan must reference the swap-back and the shadow logger
+        assert "shadow" in text.lower()
+        # The Shadow state row appears
+        assert "`Shadow`" in text
+        # The canary tier does NOT appear in this variant
+        for line in text.splitlines():
+            if line.startswith("| `"):
+                assert "`Staging (Canary)`" not in line
+
+    def test_feature_flag_variant_mentions_canary_tier(self, tmp_path: Path):
+        project = tmp_path / "ml.md"
+        project.write_text(
+            "# ML Recommendation Model\n## Objective\nDeploy new recommendation model\n"
+            "## Context\nML production system with feature flags\n## Scope\nInference path\n"
+            "## Current State\nProduction\n## Risks\nDegraded recommendations\n"
+            "## Success Criteria\nPrecision @10 within 2% of baseline\n",
+            encoding="utf-8",
+        )
+        analysis = analyze_project(str(project))
+        analysis.metadata.domain = "ai_ml"
+        out_dir = tmp_path / "outputs"
+        out_dir.mkdir()
+        path = write_variant_reversal_plan(
+            out_dir=out_dir,
+            analysis=analysis,
+            variant_id="feature_flag_checkpoint",
+            domain_id="ai_ml",
+        )
+        assert path is not None
+        text = path.read_text(encoding="utf-8")
+        assert "Staging (Canary)" in text or "`Staging (Canary)`" in text
+        # The Shadow state does NOT appear in this variant's state table
+        for line in text.splitlines():
+            if line.startswith("| `"):
+                assert "`Shadow`" not in line
 
     def test_returns_none_when_no_plugin_for_domain(self, tmp_path: Path):
         """A domain with no plugin (e.g. operations) yields no file."""

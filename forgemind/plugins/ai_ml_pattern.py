@@ -1,7 +1,23 @@
 """
-AI/ML Reverse State Pattern
+AI/ML Reverse State Pattern.
 
-Patterns for reverting model deployments, feature flags, and checkpoints.
+Two production-validated deployment variants are supported:
+
+  - feature_flag_checkpoint : Canary tier + feature-flag traffic shifting;
+                              rollback via flag flip and checkpoint restore.
+                              Source: MLOps community (MLflow, LaunchDarkly,
+                              KServe, TF Serving practices).
+  - shadow_deployment       : New model runs in parallel; only the old model
+                              serves users; shadow predictions logged for
+                              offline analysis. Rollback from Production is
+                              an instant swap; rollback from Shadow is just
+                              turning off the shadow logger (zero user impact).
+                              Source: Sculley et al., "Hidden Technical Debt
+                              in ML Systems" (NeurIPS 2015); Sato et al.,
+                              "Continuous Delivery for Machine Learning"
+                              (martinfowler.com, 2019); Netflix Tech Blog.
+
+ForgeMind codifies the patterns. No upstream code is redistributed.
 """
 
 from typing import Any, Optional
@@ -17,16 +33,22 @@ from .reverse_state_pattern import (
 
 
 class AIMLReversePattern(ReverseStatePattern):
-    """AI/ML model and feature reversal patterns."""
+    """AI/ML model deployment reversal patterns (feature-flag and shadow)."""
 
     domain = "ai_ml"
-    framework = "MLOps/AI best practices"
+    framework = "MLOps/AI best practices (Sculley 2015, Sato 2019, Netflix)"
     description = (
         "Reversal patterns for model deployments, feature flags, and data migrations. "
-        "Focuses on model versioning, checkpoint restore, and gradual rollback strategies."
+        "Two variants: feature-flag/checkpoint and shadow deployment."
     )
 
-    STATE_MACHINE = {
+    VARIANT_FEATURE_FLAG_CHECKPOINT = "feature_flag_checkpoint"
+    VARIANT_SHADOW_DEPLOYMENT = "shadow_deployment"
+    DEFAULT_VARIANT = VARIANT_FEATURE_FLAG_CHECKPOINT
+
+    # Feature-flag + checkpoint variant (original 4-state machine).
+    # Rollback uses traffic shifting via feature flags.
+    FEATURE_FLAG_STATE_MACHINE = {
         "Model Training": {
             "can_revert_to": [],
             "reversible": True,
@@ -48,6 +70,63 @@ class AIMLReversePattern(ReverseStatePattern):
             "data_loss": "medium",
         },
     }
+
+    # Shadow deployment variant — new model runs in parallel with current
+    # production; both receive real traffic, but only the production model's
+    # predictions reach users. Shadow predictions are logged for offline
+    # comparison. Rollback from Shadow is zero-user-impact (just turn off the
+    # logger). Promotion to Production swaps which model serves users.
+    SHADOW_STATE_MACHINE = {
+        "Model Training": {
+            "can_revert_to": [],
+            "reversible": True,
+            "data_loss": "none",
+        },
+        "Validation": {
+            "can_revert_to": ["Model Training"],
+            "reversible": True,
+            "data_loss": "none",
+        },
+        "Shadow": {
+            "can_revert_to": ["Validation"],
+            "reversible": True,
+            "data_loss": "none",  # users never saw shadow predictions
+        },
+        "Production": {
+            "can_revert_to": ["Shadow"],
+            "reversible": True,
+            "data_loss": "low",  # swap is instant; only in-flight requests
+        },
+    }
+
+    # Mapping variant id → state machine.
+    VARIANTS = {
+        VARIANT_FEATURE_FLAG_CHECKPOINT: FEATURE_FLAG_STATE_MACHINE,
+        VARIANT_SHADOW_DEPLOYMENT: SHADOW_STATE_MACHINE,
+    }
+
+    # Legacy attribute name preserved for backward compatibility (defaults
+    # to feature_flag_checkpoint, the prior canonical machine).
+    STATE_MACHINE = FEATURE_FLAG_STATE_MACHINE
+
+    # ------------------------------------------------------------------
+    # Construction
+    # ------------------------------------------------------------------
+
+    def __init__(self, variant_id: Optional[str] = None) -> None:
+        """Construct an AI/ML plugin bound to a deployment variant.
+
+        Args:
+            variant_id: One of the VARIANTS keys. Defaults to
+                feature_flag_checkpoint (the prior canonical pattern).
+        """
+        self.variant_id = variant_id or self.DEFAULT_VARIANT
+        if self.variant_id not in self.VARIANTS:
+            raise ValueError(
+                f"Unknown ai_ml variant: {self.variant_id}. "
+                f"Known: {sorted(self.VARIANTS.keys())}"
+            )
+        self.STATE_MACHINE = self.VARIANTS[self.variant_id]
 
     def get_supported_states(self) -> list[ReverseStateDefinition]:
         """Return AI/ML deployment states."""
@@ -97,13 +176,18 @@ class AIMLReversePattern(ReverseStatePattern):
         if not validation["is_valid"]:
             raise ValueError(validation["reason"])
 
-        # Determine steps
+        # Determine steps. Shadow variant uses different rollback semantics
+        # than the feature-flag/checkpoint variant.
         if current_state == "Validation" and target_state == "Model Training":
             steps = self._steps_validation_to_training()
         elif current_state == "Staging (Canary)" and target_state == "Validation":
             steps = self._steps_canary_to_validation()
         elif current_state == "Production" and target_state == "Staging (Canary)":
             steps = self._steps_prod_to_canary()
+        elif current_state == "Shadow" and target_state == "Validation":
+            steps = self._steps_shadow_to_validation()
+        elif current_state == "Production" and target_state == "Shadow":
+            steps = self._steps_prod_to_shadow()
         else:
             steps = []
 
@@ -208,15 +292,104 @@ class AIMLReversePattern(ReverseStatePattern):
             ),
         ]
 
+    # Shadow-variant step builders -------------------------------------
+
+    def _steps_shadow_to_validation(self) -> list[ReverseStep]:
+        """Stop shadowing (zero user impact) and return to validation.
+
+        Shadow predictions never reached users, so the rollback is purely
+        operational: turn off the shadow logger and inspect the collected
+        predictions to understand WHY shadow was rolled back.
+        """
+        return [
+            ReverseStep(
+                step_number=1,
+                action="Disable the shadow model in the serving plane (stop receiving traffic)",
+                approval_required=False,
+                estimated_time_minutes=2,
+                notes="No user impact — only the production model served predictions",
+            ),
+            ReverseStep(
+                step_number=2,
+                action="Stop logging shadow predictions; archive the predictions collected so far",
+                approval_required=False,
+                estimated_time_minutes=5,
+            ),
+            ReverseStep(
+                step_number=3,
+                action="Run offline comparison on the collected shadow vs production predictions",
+                approval_required=False,
+                estimated_time_minutes=30,
+                notes="The point of shadowing — diagnose why the new model wasn't ready",
+            ),
+            ReverseStep(
+                step_number=4,
+                action="Document findings; return the model to Validation with corrective changes",
+                approval_required=False,
+                estimated_time_minutes=15,
+            ),
+        ]
+
+    def _steps_prod_to_shadow(self) -> list[ReverseStep]:
+        """Demote a production model back to shadow.
+
+        With shadow deployment, promotion to Production = swap which model
+        serves users. Rollback = swap back. Because both models stay
+        running side-by-side, the swap is near-instantaneous; the only
+        in-flight impact is the brief request-routing transition.
+        """
+        return [
+            ReverseStep(
+                step_number=1,
+                action="ML-ops on-call approves the swap-back decision",
+                approval_required=True,
+                approval_role="ml_ops_oncall",
+                estimated_time_minutes=5,
+                notes="Document the trigger metric (accuracy drop, latency spike, etc.)",
+            ),
+            ReverseStep(
+                step_number=2,
+                action="Swap serving roles: previous model returns to Production; new model returns to Shadow",
+                approval_required=False,
+                estimated_time_minutes=2,
+                data_loss_risk="low",
+                notes="In-flight requests may experience a brief routing transition",
+            ),
+            ReverseStep(
+                step_number=3,
+                action="Verify the previous model is serving and SLO metrics are recovering",
+                approval_required=False,
+                estimated_time_minutes=10,
+            ),
+            ReverseStep(
+                step_number=4,
+                action="Re-enable shadow logging on the demoted model for forensic analysis",
+                approval_required=False,
+                estimated_time_minutes=5,
+            ),
+            ReverseStep(
+                step_number=5,
+                action="Open incident report with the demotion trigger and shadow comparison data",
+                approval_required=False,
+                estimated_time_minutes=15,
+            ),
+        ]
+
     def _get_dependencies(self, current_state: str) -> list[str]:
-        """Get dependencies for reversal."""
+        """Get dependencies for reversal (variant-aware)."""
         deps = [
             "Model versioning system (MLflow, Weights & Biases, etc.)",
             "Checkpoint/model registry with accessible prior versions",
-            "Feature flag system (LaunchDarkly, custom, etc.)",
         ]
+        if self.variant_id == self.VARIANT_SHADOW_DEPLOYMENT:
+            deps.extend([
+                "Shadow-mode serving infrastructure (dual-model deployment)",
+                "Prediction comparison / divergence-analysis tooling",
+            ])
+        else:
+            deps.append("Feature flag system (LaunchDarkly, custom, etc.)")
 
-        if current_state in ["Staging (Canary)", "Production"]:
+        if current_state in ["Staging (Canary)", "Production", "Shadow"]:
             deps.extend([
                 "Inference API compatible with previous model version",
                 "Serving infrastructure (TensorFlow Serving, KServe, etc.)",

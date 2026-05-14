@@ -213,15 +213,67 @@ disciplines:
       ai_ml:
         name: ML Systems / MLOps
         coverage: partial
-        confidence: 0.70
+        confidence: 0.75
         variants:
           - id: feature_flag_checkpoint
             name: Feature flag + model checkpoint rollback
-            source: Industry-standard MLOps pattern
+            source: >
+              MLOps community practice (MLflow, Weights & Biases, LaunchDarkly,
+              TensorFlow Serving, KServe; canary-style rollout)
             confidence: 0.70
+            production_validated: true
+            since: "Industry pattern (MLOps community)"
+            scope_evidence: >
+              Widely deployed across ML platforms with feature-flag rollouts
+            when_to_choose:
+              - You need a canary-style rollout for the new model
+              - Feature flags can route traffic to specific user cohorts
+              - Rollback should be instant via flag flip + checkpoint restore
+              - You can tolerate a small slice of users seeing the new model
+            pros:
+              - Familiar pattern reused from web-service canary deployments
+              - Granular cohort targeting via feature flags
+              - Checkpoint restore is well-supported by MLflow / W&B
+              - Rollback time measured in seconds (flag flip)
+            cons:
+              - The canary slice DOES see the new model — any harm reaches real users
+              - Requires a feature-flag service in the inference path
+              - Comparing new vs old performance is correlation, not causal
+                (different users hit different models)
+          - id: shadow_deployment
+            name: Shadow deployment — parallel models, only old serves users
+            source: >
+              Sculley et al., "Hidden Technical Debt in ML Systems"
+              (NeurIPS 2015); Sato/Wider/Windheuser, "Continuous Delivery
+              for Machine Learning" (martinfowler.com, 2019);
+              Netflix Tech Blog on model shadowing
+            url: https://martinfowler.com/articles/cd4ml.html
+            confidence: 0.75
+            production_validated: true
+            since: "Industry pattern (Sculley 2015, formalized by 2019)"
+            scope_evidence: >
+              Widely used at Google, Netflix, Uber and large-scale ML
+              platforms; published as canonical MLOps pattern
+            when_to_choose:
+              - You cannot tolerate ANY user-facing impact from a new model
+              - You want to compare new vs old predictions on the SAME input
+                (causal A/A comparison, not correlation)
+              - You can afford to run two models simultaneously in production
+              - Regulatory or trust constraints prohibit unproven model output
+            pros:
+              - Zero user-facing risk during the shadow phase
+              - Direct causal comparison (same input, two predictions)
+              - Rollback from Shadow is operationally trivial (turn off the logger)
+              - Excellent for high-stakes domains (healthcare, finance, safety)
+            cons:
+              - Doubles inference cost during the shadow window
+              - Doesn't catch UX feedback loops (users never see new predictions)
+              - Requires dual-model serving infrastructure
+              - Prediction comparison tooling must be built / bought
         boundary_conditions:
           - Model registry-level governance not modeled
           - Drift detection + auto-rollback not modeled
+          - Online learning / continual training reversibility not modeled
         escalate_to: ML Engineer / MLOps lead
 
       embedded_systems:
