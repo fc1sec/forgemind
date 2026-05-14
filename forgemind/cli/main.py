@@ -466,10 +466,49 @@ def version() -> None:
 def _write_calibration_log(log_path: Path, session) -> None:
     """Persist a calibration audit log next to the generated outputs.
 
+    Two files are written side by side:
+      - CONSULTANT_CALIBRATION.md   — human-readable narrative
+      - consultant_calibration.json — machine-readable sidecar consumed by
+                                       `forgemind followup`
+
     Auditability is part of the consultant contract: a reviewer must be able to
-    answer "what did ForgeMind calibrate to?" without re-running the session.
+    answer "what did ForgeMind calibrate to?" without re-running the session,
+    and the follow-up command must be able to resume without re-prompting.
     """
+    import json
+
     c = session.calibration
+    payload = {
+        "project_file": str(session.project_file),
+        "taxonomy_version": session.taxonomy.version,
+        "taxonomy_last_updated": session.taxonomy.last_updated,
+        "discipline": {
+            "id": c.discipline.id,
+            "name": c.discipline.name,
+        } if c.discipline else None,
+        "domain": {
+            "id": c.domain.id,
+            "name": c.domain.name,
+            "coverage": c.domain.coverage.value,
+            "confidence": c.domain.confidence,
+            "boundary_conditions": list(c.domain.boundary_conditions),
+            "escalate_to": c.domain.escalate_to,
+        } if c.domain else None,
+        "variant": {
+            "id": c.variant.id,
+            "name": c.variant.name,
+            "source": c.variant.source,
+            "url": c.variant.url,
+            "confidence": c.variant.confidence,
+            "production_validated": c.variant.production_validated,
+            "when_to_choose": list(c.variant.when_to_choose),
+            "pros": list(c.variant.pros),
+            "cons": list(c.variant.cons),
+        } if c.variant else None,
+    }
+    json_sidecar = log_path.parent / "consultant_calibration.json"
+    json_sidecar.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
     lines = [
         "# Consultant Calibration Log",
         "",
@@ -765,6 +804,104 @@ def capabilities(
                 console.print(f"  [red]✗[/red] [bold]{entry.id}[/bold] — {entry.reason}")
                 console.print(f"      [dim]Escalate to: {entry.escalate_to}[/dim]")
             console.print()
+
+
+@app.command()
+def followup(
+    output_dir: str = typer.Argument(..., help="Directory produced by `forgemind consult`"),
+    auto_accept: bool = typer.Option(
+        False,
+        "--auto-accept",
+        help="Exit immediately without entering the menu (CI / scripting)",
+    ),
+    topic: Optional[str] = typer.Option(
+        None,
+        "--topic",
+        help="Render one specific topic and exit (variant|risks|acceptance|escalation)",
+    ),
+) -> None:
+    """Revisit specific decisions in depth after a consult session.
+
+    Loads the calibration sidecar written by `forgemind consult` and lets you
+    drill into the variant choice, the risk register, acceptance criteria, or
+    the escalation path without re-running analysis.
+    """
+    try:
+        from forgemind.consultant import FollowupSession
+    except ImportError as exc:
+        console.print(f"[red]✗ Follow-up module unavailable:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+    out_path = Path(output_dir)
+    if not out_path.exists():
+        console.print(f"[red]✗ Output directory not found:[/red] {out_path}")
+        raise typer.Exit(1)
+
+    session = FollowupSession(out_path)
+    try:
+        session.load()
+    except FileNotFoundError as exc:
+        console.print(f"[red]✗ {exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    console.print(
+        "[bold cyan]ForgeMind Follow-up[/bold cyan] "
+        f"[dim](output: {out_path})[/dim]\n"
+    )
+
+    # Single-topic mode (-t flag): render and exit.
+    if topic is not None:
+        valid_keys = {t.key for t in session.topics}
+        if topic not in valid_keys:
+            console.print(
+                f"[red]✗ Unknown topic '{topic}'. Known: {sorted(valid_keys)}[/red]"
+            )
+            raise typer.Exit(1)
+        for line in session.render_topic(topic):
+            console.print(line)
+        return
+
+    # Auto-accept mode: print menu and exit cleanly (CI-friendly).
+    if auto_accept:
+        for line in session.menu_lines():
+            console.print(line)
+        console.print(
+            "\n[dim]--auto-accept: exiting without entering the menu. "
+            "Use --topic <key> to render a single topic, or omit --auto-accept "
+            "for interactive mode.[/dim]"
+        )
+        return
+
+    # Interactive menu loop.
+    while True:
+        for line in session.menu_lines():
+            console.print(line)
+        try:
+            raw = typer.prompt(
+                "Your choice", default=str(len(session.topics) + 1), show_default=True
+            )
+        except (EOFError, typer.Abort, Exception):
+            console.print("\n[yellow]Input unavailable — exiting.[/yellow]")
+            return
+        try:
+            choice = int(raw) - 1
+        except ValueError:
+            console.print(f"[red]Invalid input '{raw}'; expected a number.[/red]")
+            continue
+
+        if session.is_done_choice(choice):
+            console.print("[green]Done.[/green]")
+            return
+
+        chosen_topic = session.topic_for_choice(choice)
+        if chosen_topic is None:
+            console.print("[red]Out-of-range choice.[/red]")
+            continue
+
+        console.print()
+        for line in session.render_topic(chosen_topic.key):
+            console.print(line)
+        console.print()
 
 
 @app.command("compare-variants")

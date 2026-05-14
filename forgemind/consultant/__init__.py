@@ -10,6 +10,12 @@ The session is driven by `forgemind/data/disciplines.yaml` (the taxonomy)
 so it honours the same coverage / escalation rules as the EpistemicValidator.
 """
 
+from .followup import (
+    DEFAULT_TOPICS,
+    FollowupSession,
+    FollowupTopic,
+    LoadedCalibration,
+)
 from .session import (
     CalibrationOutcome,
     ConsultantOption,
@@ -22,4 +28,8 @@ __all__ = [
     "ConsultantOption",
     "ConsultantSession",
     "ConsultantTurn",
+    "DEFAULT_TOPICS",
+    "FollowupSession",
+    "FollowupTopic",
+    "LoadedCalibration",
 ]
