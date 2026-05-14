@@ -464,6 +464,156 @@ def version() -> None:
 
 
 @app.command()
+def consult(
+    project_file: str = typer.Argument(..., help="Path to the project markdown file"),
+    auto_accept: bool = typer.Option(
+        False,
+        "--auto-accept",
+        help="Skip prompts; pick defaults (suitable for CI / scripts)",
+    ),
+    output_dir: Optional[str] = typer.Option(
+        None,
+        "--output-dir",
+        help="Override the default output directory",
+    ),
+) -> None:
+    """Run a calibrated consultant session before generating outputs.
+
+    Unlike `intake`, which produces 17 documents directly, `consult` first
+    asks calibrated questions to confirm:
+      - which discipline applies,
+      - which domain within it,
+      - which validated variant (if more than one),
+      - whether to proceed under disclosed coverage and boundary conditions.
+
+    Use `--auto-accept` in non-interactive contexts to take all defaults.
+    """
+    try:
+        from forgemind.consultant import CalibrationOutcome, ConsultantSession
+    except ImportError as exc:
+        console.print(f"[red]✗ Consultant module unavailable:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+    project_path = Path(project_file)
+    if not project_path.exists():
+        console.print(f"[red]✗ Project file not found:[/red] {project_path}")
+        raise typer.Exit(1)
+
+    session = ConsultantSession(project_path)
+
+    console.print(
+        f"[bold cyan]ForgeMind Consultant[/bold cyan] "
+        f"[dim](taxonomy v{session.taxonomy.version})[/dim]\n"
+    )
+
+    # Step 1: load project + classify
+    console.print("[bold]Reading project...[/bold]")
+    try:
+        session.load_project()
+    except FileNotFoundError as exc:
+        console.print(f"[red]✗ {exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    if session.classifier_output:
+        console.print(
+            f"  Keyword classifier suggests: [cyan]{session.classifier_output}[/cyan]"
+        )
+
+    # If load_project already produced a refusal (e.g. tenders → out of scope),
+    # bail out before asking any questions.
+    if session.calibration.refusal_reason:
+        console.print("\n[bold red]ForgeMind cannot advise on this project.[/bold red]")
+        console.print(session.calibration.refusal_reason)
+        raise typer.Exit(2)
+
+    console.print()
+
+    # Dialog loop
+    while True:
+        turn = session.next_turn()
+        if turn is None:
+            break
+
+        console.print(
+            f"[bold]Step {turn.step}/{turn.total_steps} — {turn.purpose}[/bold]"
+        )
+        console.print(turn.question)
+        for line in turn.render_options():
+            console.print(line)
+
+        if auto_accept:
+            choice = turn.default_index or 0
+            console.print(
+                f"  [dim]> {choice + 1} (auto-accept default)[/dim]"
+            )
+        else:
+            default_display = (
+                (turn.default_index + 1) if turn.default_index is not None else 1
+            )
+            try:
+                raw = typer.prompt(
+                    "  Your choice",
+                    default=str(default_display),
+                    show_default=True,
+                )
+            except (EOFError, typer.Abort, Exception):
+                # Non-interactive (e.g. piped input exhausted): cancel cleanly.
+                console.print("\n[yellow]Input unavailable — cancelling session.[/yellow]")
+                raise typer.Exit(2) from None
+            try:
+                choice = int(raw) - 1
+            except ValueError:
+                console.print(f"[red]Invalid input '{raw}'; expected a number.[/red]")
+                raise typer.Exit(1) from None
+
+        try:
+            session.answer(turn, choice)
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(1) from exc
+
+        # If the answer triggered a refusal, break early.
+        if session.calibration.refusal_reason:
+            break
+        console.print()
+
+    # Disclose what we calibrated to
+    console.print("[bold]Calibration summary:[/bold]")
+    for line in session.disclosures():
+        console.print(f"  {line}")
+    console.print()
+
+    outcome = session.outcome()
+
+    if outcome == CalibrationOutcome.REFUSED:
+        console.print("[bold red]ForgeMind refused this session.[/bold red]")
+        raise typer.Exit(2)
+
+    if outcome == CalibrationOutcome.CANCELLED:
+        console.print("[yellow]Session cancelled by user. No outputs generated.[/yellow]")
+        raise typer.Exit(0)
+
+    # READY → delegate to the same pipeline `intake` uses.
+    console.print(
+        "[bold cyan]Calibration complete. Generating outputs...[/bold cyan]"
+    )
+    try:
+        analysis = analyze_project(str(project_path))
+    except Exception as exc:  # noqa: BLE001
+        console.print(f"[red]✗ Analysis failed:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+    out_dir = Path(output_dir) if output_dir else Path("forgemind_outputs") / analysis.metadata.slug
+    out_dir.mkdir(parents=True, exist_ok=True)
+    export_markdown(analysis, out_dir)
+    console.print(f"[green]✓[/green] Outputs written to {out_dir}")
+    console.print(
+        "[dim]Outputs are STOCHASTIC — verify with the escalation contact "
+        "above before relying on them for high-stakes decisions.[/dim]"
+    )
+
+
+@app.command()
 def capabilities(
     discipline: Optional[str] = typer.Option(
         None, "--discipline", help="Filter to a single discipline id"
