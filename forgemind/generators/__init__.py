@@ -5,6 +5,7 @@ from forgemind.generators.base import BaseGenerator
 from forgemind.generators.context_generator import generate_context
 from forgemind.generators.issue_template import generate_issue_template
 from forgemind.generators.pr_template import generate_pr_template
+from forgemind.generators.reverse_context_generator import generate_reverse_context
 from forgemind.generators.tool_permission_matrix import generate_tool_permission_matrix
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "generate_tool_permission_matrix",
     "generate_pr_template",
     "generate_issue_template",
+    "generate_reverse_context",
 ]

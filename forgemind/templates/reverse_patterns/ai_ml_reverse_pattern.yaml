@@ -1,0 +1,279 @@
+# AI/ML Model Deployment Reversibility Pattern
+# Reference: MLOps, Model Registry, Feature Flags, Canary Deployments
+# Scope: Machine learning model versioning, feature engineering, and deployment reversals
+
+domain: ai_ml
+framework: MLOps Best Practices
+description: |
+  ML model lifecycle reversibility using model versioning, feature flag controls,
+  and canary deployments. Focus on preventing data drift, maintaining model performance,
+  and enabling fast rollback from degraded models.
+
+  Key constraint: Model reversals require performance validation and data drift checks.
+  Compliance: Model governance, data governance, experiment tracking, bias monitoring.
+
+state_machine:
+  Development:
+    can_revert_to: []
+    reversible: true
+    approval_required: false
+    data_loss: none
+    description: Model training on development dataset, local experimentation
+    audit_entry: null  # Development is not audited for rollback
+    constraints:
+      - Data scientist can iterate locally on model
+      - Experiments tracked in MLflow/Weights & Biases
+      - No approval for experiment deletion
+
+  Experimentation:
+    can_revert_to:
+      - Development
+    reversible: true
+    approval_required: false  # ML Engineer can reject experiment
+    data_loss: none
+    description: Experimental model evaluated against test/validation dataset
+    audit_entry: "Experiment {exp_id} rejected. ML Engineer: {reviewer}. Issues: {metrics_below_threshold}"
+    constraints:
+      - Validation metrics must exceed baseline
+      - Feature importance analysis required
+      - Bias metrics evaluated (fairness assessment)
+      - A/B test setup planned
+
+  Staging:
+    can_revert_to:
+      - Experimentation
+    reversible: true
+    approval_required: false  # ML Engineer can pull back for more training
+    data_loss: none
+    description: Model deployed to staging environment for canary/shadow testing
+    audit_entry: "Staging model {model_id} reverted to Experimentation. Reason: {issues}"
+    constraints:
+      - Canary traffic <5% of staging users
+      - Model performance tracked vs baseline
+      - Data drift detection enabled
+      - Feature encodings validated for production data distribution
+      - Latency SLA verified (<200ms p95 for online inference)
+
+  Production:
+    can_revert_to:
+      - Staging
+    reversible: true
+    approval_required: true  # ML Operations lead or Model Owner
+    approval_role: ml_ops_lead
+    data_loss: medium  # May lose recent predictions/personalization
+    description: Model serving predictions to real users
+    reason_reversible: |
+      Production reversals are possible via:
+      1. Feature Flag: Switch traffic to previous model version (2-5 min)
+      2. Model Registry Rollback: Update serving endpoint to previous version (5-10 min)
+      3. Canary Rollback: Reduce traffic to new model, increase old model (5 min)
+      4. Shadow Mode Revert: Stop logging predictions from new model, rely on old (10 min)
+    mitigation: |
+      1. Feature Flag: Always ship with fallback flag
+      2. Model Registry: Keep previous 3 versions available for quick rollback
+      3. Canary: Start at 1% traffic, increase slowly (1%→5%→25%→100% over 1 hour)
+      4. Monitoring: Track prediction latency, model outputs, user behavior metrics
+    audit_entry: |
+      Production model rollback. New model {new_model_id} reverted to {old_model_id}.
+      Reason: {reason}. Method: {method} (feature-flag|model-registry|canary|shadow).
+      Duration: {minutes} min. Performance impact: accuracy {before}% → {after}%.
+      Data drift detected: {drift_score}. User impact: {affected_users} users, {business_impact}.
+
+  Fine-tuning:
+    can_revert_to:
+      - Production
+    reversible: true
+    approval_required: false  # Can revert fine-tune without major approval
+    data_loss: low
+    description: Model parameters adjusted for specific task/segment without full retraining
+    audit_entry: "Fine-tune {model_id} reverted. Reason: {reason}. Reverted to base model."
+    constraints:
+      - Fine-tuning data must be held-out from validation set
+      - Performance gains validated on test set
+      - Cannot fine-tune on validation/test set (data leakage)
+
+  Retraining:
+    can_revert_to:
+      - Production
+    reversible: true
+    approval_required: true  # Requires ML lead approval due to compute cost
+    approval_role: ml_lead
+    data_loss: none
+    description: Full model retraining on new data due to data drift or performance decline
+    audit_entry: "Retraining triggered by {reason}. New model {new_id} approved. Training duration: {hours}h. Data drift score: {drift}."
+    constraints:
+      - Retraining takes hours/days (offline operation)
+      - Triggers canary validation before production rollout
+      - Previous model kept available during retraining
+      - Retraining must not use leaked validation/test data
+
+  Monitoring:
+    can_revert_to: []
+    reversible: false
+    data_loss: none
+    description: Production monitoring phase detecting drift or performance degradation
+    reason_not_reversible: |
+      Monitoring is not a model state, it's an ongoing state alongside Production.
+      Reversals happen FROM Production (when drift is detected), not FROM Monitoring.
+    constraints:
+      - Continuous monitoring for: prediction latency, data drift, prediction distribution
+      - Alerts trigger when: accuracy drops >5%, latency exceeds SLA, drift score >threshold
+      - Alert escalation: ML Engineer → ML Ops Lead → VP Data if escalates
+
+reversibility_rules:
+  - |
+    Production model reversals require ML Ops Lead approval and root cause analysis
+  - |
+    Model rollback SLA: 10 minutes from approval to old model serving traffic
+  - |
+    Feature flags preferred over model registry rollback when latency SLA critical
+  - |
+    Data drift score must be evaluated before and after rollback
+  - |
+    Previous 3 model versions must remain in model registry for quick rollback
+  - |
+    All reversals logged with: time, model IDs, reason, method, accuracy/latency impact
+  - |
+    Canary deployments recommended for all new models (start 1% traffic, grow over 1 hour)
+  - |
+    If accuracy drops >5% or latency >200ms p95, trigger automatic canary abort
+  - |
+    Feature importance and bias metrics must be compared before/after rollback
+  - |
+    User-facing metrics (conversion, engagement, satisfaction) tracked for 24 hours post-rollback
+
+approval_gates:
+  Development: null
+  Experimentation: ml_engineer
+  Staging: ml_engineer
+  Production: ml_ops_lead
+  Fine-tuning: ml_engineer
+  Retraining: ml_lead
+  Monitoring: null
+
+time_estimates:
+  Development → (no reversal): 0
+  Experimentation → Development: 5  # In minutes, just delete experiment
+  Staging → Experimentation: 10  # Redeploy previous model to staging
+  Production → Staging (feature flag): 2  # Switch flag to old model
+  Production → Staging (model registry): 5  # Update endpoint to previous version
+  Production → Staging (canary): 10  # Reduce traffic to old model over 5-10 min
+  Production → Staging (shadow mode): 10  # Stop logging new model predictions
+  Fine-tuning → Production: 5  # Revert to base model via feature flag
+  Retraining → Production: 120  # If new model fails, revert while retraining continues
+  Monitoring → (escalate): 0  # Not a reversible state, triggers rollback from Production
+
+data_loss_impact:
+  Development: none
+  Experimentation: none
+  Staging: none
+  Production: medium  # May lose recent predictions, personalization, user embeddings
+  Fine-tuning: low
+  Retraining: none
+  Monitoring: none
+
+dependencies:
+  - Model registry (MLflow, Hugging Face, AWS SageMaker, Vertex AI, etc.)
+  - Version control system (Git) for model training code
+  - Feature store (Feast, Tecton, etc.) for feature engineering reproducibility
+  - Experiment tracking system (MLflow, Weights & Biases, Neptune, etc.)
+  - Feature flag system (LaunchDarkly, Unleash, etc.) for model switching
+  - Monitoring and observability (Datadog, New Relic, WhyLabs for data drift detection)
+  - Serving infrastructure supporting model versioning (KServe, KFServing, Seldon, BentoML)
+  - Database/cache for model metadata and feature store lookup
+  - A/B testing framework for comparing models in production
+  - Data drift detection system (built-in or third-party)
+  - Canary deployment framework for gradual traffic shifting
+  - Incident management (PagerDuty, Opsgenie, etc.)
+
+constraints:
+  - Production reversals require evidence (drift score, accuracy metrics, logs)
+  - Cannot revert to untested model version (must pass validation set)
+  - Model performance on validation set ≠ performance on production data
+  - Canary deployments required for models with <80% accuracy on holdout set
+  - Retraining takes hours/days (not a quick rollback method)
+  - Feature encodings must match production data distribution
+  - Fine-tuning must use held-out data (no validation/test data leakage)
+  - Drift monitoring requires baseline model for comparison
+  - Rolling back model may require rolling back features (feature engineering reversals)
+  - User-facing metrics (conversion, engagement) may lag model performance metrics by hours
+
+compliance_references:
+  - MLOps Best Practices (Lifecycle Management, Monitoring)
+  - Fairness, Accountability, Transparency (FAT) principles
+  - Data Governance (GDPR, CCPA compliance for model training data)
+  - Model Risk Management (Explainability, Bias Detection, Drift Detection)
+  - SRE practices for ML systems (error budgets, deployment windows)
+
+example_scenarios:
+  - scenario: Experimental model fails validation checks
+    current_state: Experimentation
+    target_state: Development
+    action: Delete experiment, return to training phase
+    approval_needed: false
+    audit_entry: "Experiment {exp_id} failed validation. Accuracy: 67% (threshold: 75%). Metrics: precision drop detected. Experiment deleted, returning to Development."
+    time_estimate: 5 minutes
+
+  - scenario: Staging canary shows latency increase >200ms
+    current_state: Staging
+    target_state: Experimentation
+    action: Abort canary, pull new model back to experimentation for profiling
+    approval_needed: false
+    audit_entry: "Staging canary aborted. New model p95 latency: 250ms (threshold: 200ms). Model returned to Experimentation for optimization."
+    time_estimate: 10 minutes
+
+  - scenario: Production accuracy drops 8% within first hour (detected by monitoring)
+    current_state: Production
+    target_state: Staging
+    action: |
+      1. Monitoring alert triggered (accuracy drop >5%)
+      2. ML Ops Lead approves rollback via feature flag
+      3. Feature flag switches traffic to previous model version
+      4. Data drift analysis: drift score = 0.85 (high drift)
+      5. Post-incident: investigate cause, retrain model on new data distribution
+    approval_needed: true
+    approval_role: ml_ops_lead
+    audit_entry: "Production rollback via feature flag. New model reverted after 45 min. Accuracy: 92% → 84% (threshold breach). Drift score: 0.85. Root cause: data distribution shift in user segment (new geography). New retraining initiated."
+    time_estimate: 2 minutes (feature flag switch) + 5 minutes (validation)
+
+  - scenario: Model serving latency SLA breached
+    current_state: Production
+    target_state: Staging
+    action: |
+      1. Monitoring alert: p95 latency 350ms (SLA: 200ms)
+      2. ML Ops Lead switches to previous model via feature flag
+      3. Investigate: new model is 5x more complex, needs optimization
+      4. Options: profile model, use quantization, or implement model caching
+    approval_needed: true
+    approval_role: ml_ops_lead
+    audit_entry: "Production rollback. New model p95 latency: 350ms (SLA: 200ms). Rolled back via feature flag (2 min). Root cause: new model 2x larger, needs GPU memory optimization. Reverted to previous model for 24 hours while new model is profiled."
+    time_estimate: 2 minutes
+
+  - scenario: Data drift detected, retraining initiated
+    current_state: Monitoring (alongside Production)
+    action: |
+      1. Drift detection system alerts: drift_score = 0.92 (threshold: 0.75)
+      2. ML Lead approves retraining on recent data (past 30 days)
+      3. New model trained offline over 8 hours
+      4. New model validated on holdout set from new distribution
+      5. Canary deployment: 1%→5%→25%→100% over 1 hour
+      6. Old model still serving during retraining/canary
+    approval_needed: true
+    approval_role: ml_lead
+    audit_entry: "Retraining triggered. Drift score: 0.92 (high). Cause: seasonal pattern (holiday shopping behavior). New model trained on 30-day window. Canary deployment started. Old model kept live during transition (SLA maintained)."
+    time_estimate: 480 minutes (8 hours training) + 60 minutes (canary deployment)
+
+  - scenario: Fine-tuning for specific user segment shows negative impact
+    current_state: Fine-tuning
+    target_state: Production (revert to base model)
+    action: Disable fine-tuned model for segment, revert to base model
+    approval_needed: false
+    audit_entry: "Fine-tune {model_id} reverted. Segment: high-value users. Fine-tune accuracy: 88%, but base model accuracy: 91%. Fine-tuning caused overfitting on small segment. Reverted to base model."
+    time_estimate: 5 minutes
+
+  - scenario: Model performance stable after canary, promote to 100%
+    current_state: Production (canary at 25%)
+    action: Gradually increase canary traffic to 100% over 2 hours
+    approval_needed: false
+    audit_entry: "Canary promotion. New model {id} performance stable across 1%→5%→25% traffic. Metrics within SLA. Promoting to 100% over next 2 hours. Expected completion: 2026-05-13 18:00 UTC."
+    time_estimate: 120 minutes

@@ -137,11 +137,23 @@ pip install forgemind
 
 | Badge | Info |
 |-------|------|
-| **Version** | v1.1.0 (Context Engineering Release) |
+| **Version** | v1.2.1 (Update Safety + Version Checking) |
 | **Maturity** | Beta — Ready for early adopters |
 | **Python** | 3.9+ |
 | **License** | MIT |
 | **CI/CD** | Tests + Linting required |
+| **Backward Compat** | ✅ Full (v1.1.0 projects work unchanged) |
+
+### Version Safety Guarantee
+
+✅ **All ForgeMind updates are non-blocking and safe**
+
+- Version checks run once daily (fail silently, won't interrupt work)
+- Updates never modify existing projects
+- Easy rollback anytime: `pip install forgemind==1.2.0`
+- Backward compatible with all v1.x projects
+
+See [UPDATES_AND_SAFETY.md](docs/UPDATES_AND_SAFETY.md) for detailed safety procedures.
 
 ---
 
@@ -277,6 +289,13 @@ Analyze project and generate 17 structured output documents:
 15. TOOL_PERMISSION_MATRIX.md — Agent execution constraints and permissions
 16. AGENT_PR_TEMPLATE.md — PR submission requirements for agent-generated code
 17. AGENT_ISSUE_TEMPLATE.md — Issue reporting template for feedback
+
+**v1.2 Reverse Patterns (automatic if domain supported):**
+- Enhanced `{project-slug}.context.md` now includes reversal/rollback plans from domain-specific plugins
+- Automatic discovery: If project domain has registered pattern (ISO 9001, Software, AI/ML), reversal plan generated
+- Includes: rollback path, time estimates, data loss risk, approval gates, reversal steps, dependencies, constraints
+- Epistemic classification: DETERMINISTIC (standard-based), STOCHASTIC (empirical), or ESCALATE (domain not supported)
+- Escalation info if pattern not available: suggests domain expert contact, contribution guide
 
 ### `forgemind diagnose <project_file>`
 Quick terminal summary: project name, domain, maturity, top risks, critical gaps.
@@ -477,13 +496,25 @@ For process improvement:
 - ✅ PR readiness template (submission requirements before agent executes)
 - ✅ Issue template generator (feedback collection for agent-generated code)
 
-### v1.2 (Medium term) — Pre-AgentOps Layer
-- GitHub Action readiness gate (check before merge)
-- Slack/Teams integration for readiness alerts
-- Integration with GitHub/GitLab for repo-based analysis
-- Custom domain templates
+### v1.2 (Current) — Reverse Patterns + Plugin System ✅
+- ✅ Extensible plugin architecture for domain-specific patterns (ReverseStatePattern ABC)
+- ✅ Plugin registry system with automatic pattern discovery
+- ✅ Built-in patterns: ISO 9001 QMS, Software Deployments, AI/ML Models
+- ✅ YAML template system for reverse pattern documentation
+- ✅ ReverseContextGenerator for automatic reversal plan generation
+- ✅ EpistemicValidator (prevents hallucination: DETERMINISTIC/STOCHASTIC/ESCALATE)
+- ✅ Confidence scoring and scope validation guardrails
+- ✅ Community contribution guide (CONTRIBUTING_REVERSE_PATTERNS.md)
+- ✅ 28 new tests for plugin system (90%+ coverage)
 
-### v2.0 (Future) — MethodOps Platform
+### v1.3 (Medium term) — MethodOps Learning Layer
+- Knowledge graph schema for capturing project outcomes
+- GitHub/Jira integration for automatic outcome capture
+- Recommendation engine (what succeeded for similar projects?)
+- Feedback loop system (`forgemind feedback` command)
+- Aggregated lessons dashboard
+
+### v2.0 (Future) — Full MethodOps Platform
 - Optional integration with Claude API for AI-assisted risk analysis
 - Multi-project portfolio tracking
 - Historical project metrics
@@ -520,15 +551,25 @@ forgemind gate examples/ai_agent_project.md
 
 ---
 
-## Roadmap Issues to Open
+## Plugin Contributions
+
+ForgeMind's reverse pattern system is extensible. Community experts can contribute domain-specific patterns without modifying core code.
+
+**Want to contribute a pattern for your domain?**
+- **See:** `CONTRIBUTING_REVERSE_PATTERNS.md` for contributor guide
+- **Reference:** `forgemind/templates/reverse_patterns/` for examples (ISO 9001, Software, AI/ML)
+- **Process:** Research domain → Create plugin → Add YAML template → Write tests → Submit PR
+- **Examples:** Government procurement reversals, biomedical device workflows, hardware firmware rollback, infrastructure-as-code patterns
+
+**v1.3 Roadmap Issues to Open**
 
 Community interest in these features? Open an issue to discuss:
 
-1. **GitHub Action readiness gate** — Fail CI if project doesn't pass readiness checks
-2. **Custom domain templates** — Community-contributed patterns for specific industries
-3. **Multi-project portfolio tracking** — Analyze readiness across multiple projects
-4. **Slack/Teams integration** — Send readiness alerts to your team
-5. **Claude API integration** — Optional AI-assisted risk analysis (opt-in only)
+1. **Knowledge graph for project outcomes** — Learn which mitigations succeeded across projects
+2. **GitHub/Jira integration** — Auto-capture project success/failure outcomes
+3. **Multi-project portfolio tracking** — Analyze readiness trends across projects
+4. **Recommendation engine** — "What mitigations worked for projects like yours?"
+5. **Custom assessment rules** — Organization-specific patterns and gates
 
 ---
 
@@ -561,5 +602,6 @@ For issues, feature requests, or feedback:
 
 **Built with:** Python 3.9+, Typer, Pydantic, Jinja2, Rich  
 **Inspired by:** RDMAICSI, Peter Senge, Lean, Six Sigma, ISO/QMS  
-**Philosophy:** Structure work rigorously before execution.  
-**Status:** v1.1.0 context engineering release • Beta maturity • Ready for adoption
+**Philosophy:** Structure work rigorously. Reverse safely. Learn continuously.  
+**Status:** v1.2.1 update safety release • Beta maturity • Production-ready  
+**Safety:** ✅ Backward compatible • Safe updates • Easy rollback

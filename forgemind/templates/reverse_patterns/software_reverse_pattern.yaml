@@ -1,0 +1,245 @@
+# Software Engineering Deployment Reversibility Pattern
+# Reference: Blue-Green Deployment, Feature Flags, Git-based Workflows
+# Scope: Generic software deployment and version control reversals
+
+domain: software
+framework: Software Engineering Best Practices
+description: |
+  Deployment lifecycle reversibility using blue-green deployments, feature flags,
+  and git-based version control. Focus on minimizing downtime and data loss during
+  rollbacks.
+
+  Key constraint: Production rollbacks require approval and have strict SLA windows.
+  Compliance: Change management process, deployment runbooks, monitoring alerts.
+
+state_machine:
+  Development:
+    can_revert_to: []
+    reversible: true
+    approval_required: false
+    data_loss: none
+    description: Feature branches, local development state
+    audit_entry: null  # Development is not audited for rollback
+    constraints:
+      - Developer can revert own code locally
+      - No approval needed for feature branch deletion
+
+  Code Review:
+    can_revert_to:
+      - Development
+    reversible: true
+    approval_required: false  # Code reviewer can request changes
+    data_loss: none
+    description: Pull request/code review in progress
+    audit_entry: "PR closed and returned to Development. Reviewer: {reviewer}. Reason: {reason}"
+    constraints:
+      - Changes to PR blocked until feedback addressed
+      - Conversation preserved for auditing
+      - Branch protection rules enforced
+
+  Staging:
+    can_revert_to:
+      - Code Review
+    reversible: true
+    approval_required: false  # QA or release engineer can pull back
+    data_loss: partial  # Test data may need re-creation
+    description: Code deployed to staging environment for QA testing
+    audit_entry: "Staging deployment reverted to Code Review. Tester: {tester}. Issues: {issues}"
+    constraints:
+      - Integration tests run before staging
+      - Staging database may be reset
+      - Deployment notifications sent to team
+      - Stakeholders notified of rollback
+
+  Production:
+    can_revert_to:
+      - Staging
+    reversible: true
+    approval_required: true  # On-call engineer or deployment lead
+    approval_role: deployment_lead
+    data_loss: high  # May lose recent transactions/data
+    description: Code released to production environment
+    reason_reversible: |
+      Production reversals are possible via:
+      1. Blue-Green Deployment: Switch load balancer back to old environment (5-10 min)
+      2. Feature Flag: Disable feature at runtime, keep old code path (2-5 min)
+      3. Git Revert: Revert commit and re-deploy previous version (15-30 min)
+      4. Database Rollback: Restore database to pre-deployment snapshot (30-120 min)
+    mitigation: |
+      1. Blue-Green: Keep old environment up for 1-2 hours post-deploy
+      2. Feature Flags: Always ship with feature flag + kill switch
+      3. Database: Use backward-compatible migrations, test rollback path
+      4. Canary Deployment: Route 5% traffic first, monitor for 15 min
+    audit_entry: |
+      Production rollback initiated by {engineer} on {date}.
+      Method: {method} (blue-green|feature-flag|git-revert|db-restore).
+      Reason: {reason}. Duration: {minutes} min. Data impact: {data_loss}.
+      Metrics: error_rate before={before}% after={after}% latency before={before}ms after={after}ms.
+
+  Hotfix:
+    can_revert_to:
+      - Production
+    reversible: true
+    approval_required: true  # Requires emergency approval
+    approval_role: incident_commander
+    data_loss: high
+    description: Emergency fix deployed outside normal change management
+    audit_entry: "Hotfix {commit_hash} deployed to production. Incident: {ticket}. Duration: {minutes} min."
+    constraints:
+      - Requires incident approval (PagerDuty, incident channel)
+      - Stakeholders notified immediately
+      - Follow-up: Normal PR process for fix, document incident
+      - Post-incident review within 24 hours
+
+  Maintenance:
+    can_revert_to:
+      - Production
+    reversible: true
+    approval_required: false  # Maintenance window already approved
+    data_loss: medium  # Depends on maintenance type
+    description: Database migration, infrastructure change, dependency upgrade
+    audit_entry: "Maintenance rolled back. Type: {type}. Reason: {reason}. Duration: {minutes} min."
+    constraints:
+      - Maintenance window notification sent 48 hours in advance
+      - Monitoring enabled during maintenance
+      - Rollback procedure pre-tested
+      - If rollback >30 min, escalate to incident commander
+
+reversibility_rules:
+  - |
+    Production rollbacks must be approved by on-call engineer or deployment lead
+  - |
+    Rollback SLA: 15 minutes from approval to traffic switched (blue-green)
+  - |
+    Feature flags preferred over re-deployment when available
+  - |
+    Database rollbacks require data verification before re-enabling connections
+  - |
+    All rollbacks logged with: time, reason, engineer, method, metrics impact
+  - |
+    Canary deployments recommended for risky changes (new database schema, major refactor)
+  - |
+    If rollback >1 hour, trigger post-incident review process
+  - |
+    Blue-green environments must be kept in sync (code) but data may diverge
+
+approval_gates:
+  Development: null
+  Code Review: code_reviewer
+  Staging: qa_tester
+  Production: deployment_lead
+  Hotfix: incident_commander
+  Maintenance: release_engineer
+
+time_estimates:
+  Development → (no reversal): 0
+  Code Review → Development: 5  # In minutes, just close PR
+  Staging → Code Review: 10  # Redeploy to staging
+  Production → Staging (blue-green): 5  # Switch load balancer
+  Production → Staging (feature flag): 2  # Disable flag, re-enable old code path
+  Production → Staging (git revert): 20  # Revert commit, re-deploy, verify
+  Production → Staging (db restore): 60  # Restore backup, verify consistency
+  Hotfix → (mitigate): 15  # Via feature flag or blue-green
+  Maintenance → (mitigate): 45  # Via schema migration rollback or data restore
+
+data_loss_impact:
+  Development: none
+  Code Review: none
+  Staging: partial  # Test data, not production
+  Production: high  # Recent transactions may be lost depending on method
+  Hotfix: high  # May lose recent data depending on rollback method
+  Maintenance: medium  # Depends on maintenance type (migration, infra change)
+
+dependencies:
+  - Version control system (Git) with branch protection rules
+  - Deployment automation (GitHub Actions, GitLab CI, Jenkins, etc.)
+  - Blue-green or canary deployment infrastructure
+  - Load balancer supporting fast traffic switching
+  - Feature flag system (LaunchDarkly, Unleash, Firebase Remote Config, etc.)
+  - Database backup/restore capability with RTO < 2 hours
+  - Monitoring and alerting (Datadog, New Relic, Prometheus, etc.)
+  - Runbook documentation for each rollback method
+  - On-call engineer availability (24/7 for critical services)
+  - Communication channel (Slack, PagerDuty, etc.) for notifications
+
+constraints:
+  - Production rollbacks require approval and evidence (logs, metrics)
+  - Cannot revert to an unvetted commit (must exist in Git history)
+  - Database backward compatibility required (migrations must support rollback)
+  - Feature flags require code changes pre-deployment (cannot add post-facto)
+  - Blue-green deployments require 2x infrastructure cost
+  - Hotfixes must be reviewed in normal PR process within 24 hours
+  - Canary deployments may impact subset of users during rollback decision
+  - Maintenance windows must be scheduled and communicated 48 hours in advance
+
+compliance_references:
+  - GitHub/GitLab branch protection and code review enforcement
+  - DORA metrics (deployment frequency, lead time, MTTR, change failure rate)
+  - SRE practices (error budgets, deployment windows, on-call rotations)
+  - Change management process (RFC, approval, communication, post-mortem)
+
+example_scenarios:
+  - scenario: Code review feedback requires changes
+    current_state: Code Review
+    target_state: Development
+    action: Request changes on PR, close PR, delete feature branch
+    approval_needed: false
+    audit_entry: "PR #123 closed. Reviewer feedback: code style issues, missing tests. Branch deleted."
+    time_estimate: 5 minutes
+
+  - scenario: Staging tests find critical bug
+    current_state: Staging
+    target_state: Code Review
+    action: Revert commit, update PR with fix, re-deploy to staging
+    approval_needed: false
+    audit_entry: "Staging deployment reverted. QA found: memory leak in connection pool. Returned to Code Review for fix."
+    time_estimate: 15 minutes
+
+  - scenario: Production error rate spike (no feature flag available)
+    current_state: Production
+    target_state: Staging
+    action: |
+      1. Declare incident (PagerDuty alert triggered)
+      2. On-call engineer approves rollback
+      3. Blue-green: Switch load balancer to previous environment
+      4. Verify error rate returns to baseline
+      5. Post-incident review within 24 hours
+    approval_needed: true
+    approval_role: deployment_lead
+    audit_entry: "Production rollback via blue-green. Incident #456: error_rate 15% → 0.5% after rollback (3 min). Cause: N+1 query in new API endpoint. Duration: 3 min total."
+    time_estimate: 5 minutes (blue-green switch) + 10 minutes (verification)
+
+  - scenario: Database migration causing connection pool exhaustion
+    current_state: Production
+    target_state: Maintenance
+    action: |
+      1. Stop write traffic (feature flag)
+      2. Restore database backup from pre-migration snapshot
+      3. Revert migration code
+      4. Re-enable write traffic
+      5. Full application restart recommended
+    approval_needed: true
+    approval_role: release_engineer
+    audit_entry: "Database rollback during maintenance. Migration caused connection pool exhaustion (pool_size exceeded). Restored pre-migration backup (90 min ago). Downtime: 12 min. Lost transactions: ~500 (recovered from transaction log)."
+    time_estimate: 60 minutes
+
+  - scenario: Emergency security patch deployment (hotfix)
+    current_state: Hotfix
+    target_state: Production (deployed) / Rollback to Staging
+    action: |
+      IF rollback needed:
+      1. Incident commander approves rollback
+      2. Feature flag: disable the feature containing the vulnerability
+      3. OR: Blue-green: switch back to previous version
+      4. Post-incident: security audit of rollback procedure
+    approval_needed: true
+    approval_role: incident_commander
+    audit_entry: "Hotfix CVE-2026-12345 deployed then rolled back. Reason: patch caused compatibility issue with legacy API. Rollback via feature flag (2 min). Incident: SEC-789."
+    time_estimate: 2-5 minutes
+
+  - scenario: Feature flag allows zero-downtime rollback
+    current_state: Production
+    action: "Disable feature flag at runtime"
+    approval_needed: false
+    audit_entry: "Feature flag 'new-checkout-flow' disabled at 2026-05-13 14:23 UTC. Reason: conversion rate dropped 12%. Old code path re-enabled. Rollback time: 90 seconds."
+    time_estimate: 2 minutes (flag disable + verification)

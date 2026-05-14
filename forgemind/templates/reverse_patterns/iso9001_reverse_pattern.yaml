@@ -1,0 +1,156 @@
+# ISO 9001:2015 Document Reversibility Pattern
+# Reference: ISO 9001:2015 §8.5.6 (Control of externally provided processes, products and services)
+
+domain: iso9001
+framework: ISO 9001:2015
+description: |
+  Document lifecycle reversibility with mandatory audit trails.
+
+  Key constraint: Signed documents cannot be unsigned per ISO 9001:2015.
+  Compliance remediation: Issue new approved version + mark old version obsolete.
+
+state_machine:
+  Draft:
+    can_revert_to: []
+    reversible: true
+    approval_required: false
+    data_loss: none
+    description: Initial document creation state
+    audit_entry: null  # No audit entry needed for initial draft
+
+  Under Review:
+    can_revert_to:
+      - Draft
+    reversible: true
+    approval_required: false  # Author can pull back for revision
+    data_loss: none
+    description: Document in review/approval process
+    audit_entry: "Document returned to Draft by {reviewer} on {date}. Reason: {reason}"
+    constraints:
+      - Notifications must go to stakeholders
+
+  Approved:
+    can_revert_to:
+      - Under Review
+    reversible: true
+    approval_required: true  # Quality manager must approve reversal
+    approval_role: quality_manager
+    data_loss: none
+    description: Document approved but not yet implemented
+    audit_entry: "Document approval reverted to Under Review. Re-approval required. Reason: {reason}"
+    constraints:
+      - Change request process must be followed per §8.5.6
+      - May trigger re-review cycle
+      - Stakeholders must be notified
+
+  Signed:
+    can_revert_to: []  # Cannot revert signed documents
+    reversible: false
+    data_loss: none
+    description: Document legally signed or officially released
+    reason_not_reversible: |
+      ISO 9001:2015 §8.5.2 requires that "information shall be available and suitable
+      for the activities needed to ensure the adequate provision of products and services."
+      Signed documents are historical records and cannot be unsigned.
+    mitigation: |
+      1. Issue new approved version with updates
+      2. Mark original version as "Superseded" with effective date
+      3. Maintain both versions in document control system
+      4. Update distribution lists and references
+    approval_required: false
+    audit_entry: |
+      Cannot revert signed document per §8.5.2.
+      Supersession: Original version marked obsolete on {date}.
+      Replacement version: {new_version}.
+
+  Obsolete:
+    can_revert_to: []
+    reversible: false
+    data_loss: none
+    description: Document no longer in use (historic reference)
+    approval_required: false
+    reason_not_reversible: "Obsolete documents are archived for compliance record-keeping only"
+    constraints:
+      - Retained for regulatory and compliance history
+      - Cannot be reactivated
+
+reversibility_rules:
+  - |
+    ALL reversals must include audit trail logging per §8.5.2
+  - |
+    Change reason must be documented in audit trail
+  - |
+    Stakeholder notifications required when reverting from Under Review, Approved, or Signed
+  - |
+    Quality manager approval required for reverting from Approved state
+  - |
+    Signed documents cannot be reverted; issue new version instead
+
+approval_gates:
+  Draft: null
+  Under Review: document_author
+  Approved: quality_manager
+  Signed: null  # Cannot revert
+  Obsolete: null  # Cannot revert
+
+time_estimates:
+  Draft → (no reversal needed): 0
+  Under Review → Draft: 15  # In minutes
+  Approved → Under Review: 25  # Includes notifications
+  Signed → (mitigation): 60  # Time to create and approve new version
+  Obsolete → (not possible): null
+
+data_loss_impact:
+  Draft: none
+  Under Review: none
+  Approved: none
+  Signed: none  # No data loss, but regulatory impact
+  Obsolete: none
+
+dependencies:
+  - Document control system with version history
+  - Change request / configuration management process
+  - Stakeholder distribution list
+  - Audit trail / document log system
+  - Quality manager access and approval authority
+
+constraints:
+  - All reversals must be documented in audit trail per §8.5.2
+  - Change reason must be recorded
+  - Signed documents cannot be reverted
+  - Quality manager approval required for Approved reversals
+  - Stakeholder notifications required
+  - Must follow organization's change management process
+
+compliance_references:
+  - ISO 9001:2015 §8.5.2 (Control of externally provided processes, products and services)
+  - ISO 9001:2015 §8.5.6 (Change control)
+  - ISO 9001:2015 §4.4.1 (Documentation requirements)
+
+example_scenarios:
+  - scenario: Draft document needs revision
+    current_state: Draft
+    target_state: Not applicable (no reversal needed, just edit)
+    action: Update content and save
+    approval_needed: false
+
+  - scenario: Review feedback requires changes
+    current_state: Under Review
+    target_state: Draft
+    action: Return to author for revision
+    approval_needed: false
+    audit_entry: "Returned to Draft. Reviewer feedback: specific items requiring revision"
+
+  - scenario: Approved document has compliance issue
+    current_state: Approved
+    target_state: Under Review
+    action: Request quality manager approval to revert
+    approval_needed: true
+    audit_entry: "Reverted to Under Review. Reason: Compliance issue identified in §X.X"
+
+  - scenario: Released document needs urgent correction
+    current_state: Signed
+    target_state: Cannot revert
+    action: Issue new approved version, mark old as superseded
+    approval_needed: true
+    audit_entry: "Original document superseded. New version {id} approved on {date}"

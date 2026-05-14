@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "forgemind"
-version = "1.1.0"
+version = "1.2.1"
 description = "ForgeMind: Context engineering and readiness layer for AI agents and teams"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -43,6 +43,7 @@ dependencies = [
     "jinja2>=3.0.0",
     "pyyaml>=6.0.0",
     "rich>=13.0.0",
+    "packaging>=21.0.0",
 ]
 
 [project.optional-dependencies]
