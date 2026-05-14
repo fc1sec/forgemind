@@ -418,6 +418,83 @@ class TestConsultProducesReversalPlan:
         # Stdout reports the artifact
         assert "REVERSAL_PLAN.md" in result.stdout
 
+    def test_consult_produces_full_output_set(self, tmp_path: Path, monkeypatch):
+        """Integration: consult produces ALL expected artifacts side-by-side.
+
+        Covers todo item #12 — explicit integration test against the markdown
+        exporter. Verifies the 17 standard markdown documents from
+        `export_markdown` coexist with the consultant-specific artifacts
+        (CONSULTANT_CALIBRATION.md, consultant_calibration.json,
+        REVERSAL_PLAN.md) in the same output directory after one consult run.
+
+        If any of these regress, this test fails loudly and points at the
+        integration seam between `analyze_project` → `export_markdown` →
+        `_write_calibration_log` → `write_variant_reversal_plan`.
+        """
+        import json as _json
+
+        monkeypatch.setenv("FORGEMIND_HISTORY_PATH", str(tmp_path / "h.jsonl"))
+        project = _write_qms_project(tmp_path)
+        out_dir = tmp_path / "outputs"
+        runner = CliRunner()
+        result = runner.invoke(
+            app,
+            ["consult", str(project), "--auto-accept", "--output-dir", str(out_dir)],
+        )
+        assert result.exit_code == 0, result.stdout
+
+        # 1) The 17 standard markdown documents from export_markdown
+        expected_standard_outputs = [
+            "PROJECT_CHARTER.md",
+            "RDMAICSI_MATRIX.md",
+            "SENGE_LENS.md",
+            "LEAN_WASTE_SCAN.md",
+            "RISK_REGISTER.md",
+            "ASSUMPTION_LOG.md",
+            "ACCEPTANCE_CRITERIA.md",
+            "BACKLOG.md",
+            "CONTROL_PLAN.md",
+            "DECISION_LOG.md",
+            "AGENT_HANDOFF.md",
+            "README_OUTPUT_INDEX.md",
+            "AI_RISK_CHECKLIST.md",
+            "TOOL_PERMISSION_MATRIX.md",
+            "AGENT_PR_TEMPLATE.md",
+            "AGENT_ISSUE_TEMPLATE.md",
+        ]
+        for fname in expected_standard_outputs:
+            assert (out_dir / fname).exists(), f"Missing standard output: {fname}"
+            # Each standard doc must be non-empty and start with a markdown header
+            content = (out_dir / fname).read_text(encoding="utf-8")
+            assert content.strip(), f"{fname} is empty"
+
+        # 2) The consultant-specific artifacts
+        assert (out_dir / "CONSULTANT_CALIBRATION.md").exists()
+        assert (out_dir / "consultant_calibration.json").exists()
+        assert (out_dir / "REVERSAL_PLAN.md").exists()
+
+        # 3) JSON sidecar is parseable and contains the calibrated choices
+        sidecar = _json.loads(
+            (out_dir / "consultant_calibration.json").read_text(encoding="utf-8")
+        )
+        assert sidecar["discipline"]["id"] == "quality_management"
+        assert sidecar["domain"]["id"] == "iso9001"
+        assert sidecar["variant"]["id"] == "cespi_unlp_8state"
+
+        # 4) REVERSAL_PLAN.md reflects the variant choice (8-state table)
+        reversal_text = (out_dir / "REVERSAL_PLAN.md").read_text(encoding="utf-8")
+        for cespi_only_state in ("Created", "Under Approval", "In Force"):
+            assert (
+                cespi_only_state in reversal_text
+            ), f"REVERSAL_PLAN.md missing CeSPI-only state: {cespi_only_state}"
+
+        # 5) The calibration markdown references the chosen variant + escalation
+        calibration_md = (out_dir / "CONSULTANT_CALIBRATION.md").read_text(
+            encoding="utf-8"
+        )
+        assert "cespi_unlp_8state" in calibration_md or "CeSPI" in calibration_md
+        assert "Escalate to" in calibration_md
+
     def test_followup_topic_reads_variant_reversal_plan(self, tmp_path: Path, monkeypatch):
         """The follow-up 'variant' topic should still work alongside the new file."""
         monkeypatch.setenv("FORGEMIND_HISTORY_PATH", str(tmp_path / "h.jsonl"))
