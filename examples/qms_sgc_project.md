@@ -1,5 +1,55 @@
 # QMS Document Control Stabilization Project
 
+> **Example Type**: Complete ISO 9001 QMS Project  
+> **Domain**: `qms_iso`  
+> **How to use**: Run `forgemind intake examples/qms_sgc_project.md` to generate analysis  
+> **Time to analyze**: ~2 seconds  
+> **Generated outputs location**: `forgemind_outputs/qms-document-control-stabilization-project/`
+
+---
+
+## What ForgeMind Will Generate
+
+When you analyze this project, ForgeMind will create 17 documents including:
+
+**Core QMS Documents:**
+- `PROJECT_CHARTER.md` — Objective, scope, success criteria aligned to ISO 9001:2015 §8.5.6
+- `RISK_REGISTER.md` — Compliance risks, audit findings, control failures
+- `ASSUMPTION_LOG.md` — Assumptions about approval authorities, document scope
+- `CONTROL_PLAN.md` — How to maintain document control discipline
+- `DECISION_LOG.md` — Decisions about document lifecycle states, access controls
+
+**QMS-Specific Documents:**
+- Enhanced `context.md` includes reversal plans for document state machines
+- `ACCEPTANCE_CRITERIA.md` — Audit-ready success criteria
+- `TOOL_PERMISSION_MATRIX.md` — Who can create, review, approve, publish documents
+
+---
+
+## Domain-Specific Notes for QMS/ISO 9001 Projects
+
+For QMS projects, **ForgeMind will:**
+- ✅ Map ISO 9001 requirements to your project
+- ✅ Identify compliance gaps and risks
+- ✅ Create audit-ready documentation
+- ✅ Define document control workflows (Draft → Review → Approved → Active → Obsolete)
+- ✅ Suggest approval gates and record-keeping procedures
+
+**ForgeMind will NOT:**
+- ❌ Certify ISO 9001 compliance (auditor certifies)
+- ❌ Design your DMS system
+- ❌ Conduct the audit
+
+**What you need to do:**
+- Have QMS Lead validate workflows match your organization
+- Implement document management system
+- Train team on new procedures
+- Run internal audit before external audit
+
+---
+
+## The Project
+
 ## Objective
 Establish a controlled, auditable document management process for ISO 9001:2015 compliance, eliminating version confusion and ensuring all documents are current, approved, and traceable.
 

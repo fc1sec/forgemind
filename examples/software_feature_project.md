@@ -1,5 +1,47 @@
 # Dashboard Feature Project
 
+> **Example Type**: Complete Software Engineering Project  
+> **Domain**: `software_project`  
+> **How to use**: Run `forgemind intake examples/software_feature_project.md` to generate analysis  
+> **Time to analyze**: ~2 seconds  
+> **Generated outputs location**: `forgemind_outputs/dashboard-feature-project/`
+
+---
+
+## What ForgeMind Will Generate
+
+When you analyze this project, ForgeMind will create 17 documents including:
+
+**Core Analysis:**
+- `PROJECT_CHARTER.md` — Objective, scope, success criteria
+- `RISK_REGISTER.md` — Technical risks (performance, concurrency, data staleness)
+- `ASSUMPTION_LOG.md` — Assumptions about user load, data freshness, etc.
+- `CONTROL_PLAN.md` — How to prevent scope creep and maintain performance SLAs
+
+**Engineering-Specific:**
+- `ACCEPTANCE_CRITERIA.md` — Testable success metrics (2s load time, 500 concurrent users, etc.)
+- `TOOL_PERMISSION_MATRIX.md` — What systems the dashboard can access
+- `AGENT_HANDOFF.md` — Complete handoff for Claude Code or other agents
+
+---
+
+## Domain-Specific Notes for Software Projects
+
+For software features, **ForgeMind will:**
+- ✅ Identify architectural and deployment risks
+- ✅ Flag integration points and dependencies
+- ✅ Define clear acceptance criteria
+- ✅ Surface assumptions about performance and scalability
+
+**ForgeMind will NOT:**
+- ❌ Design your architecture
+- ❌ Guarantee performance targets will be met
+- ❌ Write code
+
+---
+
+## The Project
+
 ## Objective
 Build a real-time analytics dashboard that provides teams with visibility into project metrics, enabling faster decision-making and improved visibility into team performance.
 

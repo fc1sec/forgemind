@@ -1,5 +1,49 @@
 # Odoo Inventory Lot/Serial Traceability Project
 
+> **Example Type**: ERP Implementation / Configuration Project  
+> **Domain**: `odoo_erp`  
+> **Note**: Patterns specific to Odoo; other ERP systems will have different configuration approaches  
+> **How to use**: Run `forgemind intake examples/odoo_process_project.md` to generate analysis  
+> **Time to analyze**: ~2 seconds  
+
+---
+
+## What ForgeMind Will Generate
+
+When you analyze this project, ForgeMind will create 17 documents including:
+
+**Core ERP Planning:**
+- `PROJECT_CHARTER.md` — Implementation scope, success criteria
+- `RISK_REGISTER.md` — Configuration risks, data migration issues, process adoption
+- `ASSUMPTION_LOG.md` — Assumptions about data quality, user adoption
+- `CONTROL_PLAN.md` — Preventing configuration drift, maintaining data integrity
+
+**Implementation-Specific Documents:**
+- `ACCEPTANCE_CRITERIA.md` — Functional testing requirements for traceability
+- `DECISION_LOG.md` — Configuration choices and business justifications
+- Deployment and cutover planning
+
+---
+
+## Domain-Specific Notes for ERP Projects
+
+For Odoo ERP projects, **ForgeMind will:**
+- ✅ Help structure configuration planning
+- ✅ Identify data migration risks
+- ✅ Create testing and cutover checklists
+- ✅ Flag user adoption and training needs
+
+**ForgeMind will NOT:**
+- ❌ Configure Odoo (your implementation partner does this)
+- ❌ Guarantee system will work with your data (depends on your data quality)
+- ❌ Know if other ERP systems have the same features
+
+**Note**: This example is specific to Odoo. If you use SAP, Netsuite, or another ERP, your configuration patterns will differ. Use ForgeMind to structure YOUR planning, adapting the template to your system.
+
+---
+
+## The Project
+
 ## Objective
 Implement lot and serial number tracking in Odoo to enable full product traceability from manufacture through distribution, meeting regulatory requirements and enabling rapid recall capability.
 

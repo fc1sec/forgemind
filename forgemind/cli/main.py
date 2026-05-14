@@ -10,6 +10,7 @@ from rich.table import Table
 from forgemind import __version__
 from forgemind.cli.version import check_version_availability
 from forgemind.core.analysis import analyze_project
+from forgemind.core.classifier import classify_domain
 from forgemind.exporters.json_exporter import export_json
 from forgemind.exporters.markdown import export_markdown
 
@@ -38,11 +39,46 @@ app.callback(invoke_without_command=False)(app_callback)
 @app.command()
 def init() -> None:
     """Initialize ForgeMind workspace with sample project."""
+
+    # Detect if this is first-time use
+    projects_path = Path("forgemind_projects")
+    is_first_time = not projects_path.exists()
+
     console.print("[bold cyan]Initializing ForgeMind workspace...[/bold cyan]")
 
     # Create directories
-    Path("forgemind_projects").mkdir(exist_ok=True)
+    projects_path.mkdir(exist_ok=True)
     Path("forgemind_outputs").mkdir(exist_ok=True)
+
+    # Show orientation on first-time initialization
+    if is_first_time:
+        console.print()
+        console.print("[bold cyan]Welcome to ForgeMind[/bold cyan]")
+        console.print(
+            "ForgeMind helps you structure projects [bold]before[/bold] you build them.\n"
+            "In 15 minutes, you'll understand what ForgeMind does—and what it doesn't.\n"
+        )
+
+        # Show capabilities and limitations
+        console.print("[bold]What ForgeMind Does[/bold]")
+        console.print("  ✅ Analyzes your project description")
+        console.print("  ✅ Creates 17 structured planning documents")
+        console.print("  ✅ Helps surface risks, assumptions, gaps")
+        console.print("  ✅ Prepares handoff context for AI agents\n")
+
+        console.print("[bold]What ForgeMind Does NOT Do[/bold]")
+        console.print("  ❌ Make decisions for you")
+        console.print("  ❌ Know your domain better than you")
+        console.print("  ❌ Guarantee your project succeeds")
+        console.print("  ❌ Write code or deploy systems")
+        console.print("  ❌ Certify compliance\n")
+
+        # Prompt for demo
+        if typer.confirm("Ready to see a 2-minute demo?", default=True):
+            console.print()
+            console.print("[cyan]Next: Run the demo analysis[/cyan]")
+            console.print("[cyan]forgemind intake forgemind_projects/sample_ai_project.md[/cyan]")
+            console.print()
 
     # Create sample project file
     sample_file = Path("forgemind_projects/sample_ai_project.md")
@@ -117,13 +153,61 @@ Agent generates 80% of boilerplate in <30 minutes, human review adds 1-2 hours.
 
 
 @app.command()
-def intake(project_file: str) -> None:
+def intake(
+    project_file: str,
+    explain: bool = typer.Option(
+        False,
+        "--explain",
+        help="Explain why each project section matters"
+    ),
+) -> None:
     """Analyze project and generate structured outputs."""
     console.print(f"[bold cyan]Analyzing project: {project_file}[/bold cyan]")
 
     try:
+        # Check file exists first
+        project_path = Path(project_file)
+        if not project_path.exists():
+            console.print(f"[red]✗ Project file not found[/red]")
+            console.print(f"[dim]Looking for: {project_path.resolve()}[/dim]\n")
+            console.print("[bold]Check:[/bold]")
+            console.print("  1. File path is correct")
+            console.print("  2. File is Markdown format (.md)")
+            console.print("  3. File is in current directory or use full path\n")
+            console.print("[cyan]Example:[/cyan] forgemind intake ./my_project.md")
+            raise typer.Exit(1)
+
         # Analyze project
         analysis = analyze_project(project_file)
+
+        # Domain detection
+        domain, is_detected = classify_domain(analysis.input)
+        console.print(f"[cyan]Detected domain:[/cyan] {domain}")
+
+        # Show domain-specific guidance
+        domain_guidance = {
+            "ai_project": "ForgeMind helps you surface safety risks, model versioning strategies, and agent handoff context.",
+            "software_project": "ForgeMind helps you identify architectural risks, deployment reversibility, and integration points.",
+            "qms_iso": "ForgeMind helps you structure document lifecycle, approval gates, and audit trails.",
+            "operations": "ForgeMind helps you map process flows, control points, and escalation procedures.",
+            "odoo_erp": "ForgeMind helps you plan ERP configuration, data migration, and user adoption.",
+            "tenders": "[yellow]⚠️  Tender analysis requires compliance expertise.[/yellow] ForgeMind structures planning but cannot certify regulatory compliance.",
+            "generic": "ForgeMind helps you identify risks and success criteria.",
+        }
+
+        if domain in domain_guidance:
+            console.print(f"[bold]{domain.upper().replace('_', ' ')} Analysis[/bold]")
+            console.print(domain_guidance[domain] + "\n")
+
+        # Show section explanations if requested
+        if explain:
+            console.print("[bold cyan]Why Each Section Matters[/bold cyan]")
+            console.print("  [bold]Objective[/bold] — One-sentence project goal. Why: Keeps team aligned.")
+            console.print("  [bold]Context[/bold] — Background and problem statement. Why: Helps stakeholders understand importance.")
+            console.print("  [bold]Scope[/bold] — What's IN scope vs OUT of scope. Why: Prevents scope creep.")
+            console.print("  [bold]Constraints[/bold] — Timeline, budget, team limits. Why: Forces realistic planning.")
+            console.print("  [bold]Risks[/bold] — What could go wrong. Why: Plan mitigations now, not during crisis.")
+            console.print("  [bold]Success Criteria[/bold] — How you'll know you succeeded. Why: Makes completion testable.\n")
 
         # Create output directory
         output_dir = Path("forgemind_outputs") / analysis.metadata.slug
@@ -136,20 +220,43 @@ def intake(project_file: str) -> None:
         console.print()
         console.print("[green]✓[/green] [bold]Analysis complete![/bold]")
         console.print()
-        console.print(f"[cyan]Project:[/cyan] {analysis.metadata.name}")
-        console.print(f"[cyan]Domain:[/cyan] {analysis.metadata.domain}")
-        console.print(f"[cyan]Maturity:[/cyan] {analysis.maturity_estimate}")
-        console.print()
-        console.print(f"[cyan]Outputs written to: {output_dir}[/cyan]")
-        console.print()
+        console.print("[bold cyan]Start Here[/bold cyan]")
+        console.print("  1. [bold]PROJECT_CHARTER.md[/bold] — Objective, scope, success criteria")
+        console.print("  2. [bold]RISK_REGISTER.md[/bold] — What could go wrong and how to mitigate")
+        console.print("  3. [bold]ACCEPTANCE_CRITERIA.md[/bold] — How you'll know you succeeded\n")
 
-        # List generated files
-        console.print("[bold cyan]Generated files:[/bold cyan]")
-        for file in sorted(output_dir.glob("*.md")):
-            console.print(f"  [green]✓[/green] {file.name}")
+        console.print("[bold cyan]Next Steps[/bold cyan]")
+        console.print("  • Review documents with your team")
+        console.print("  • Update your project based on what ForgeMind surfaced")
+        console.print(f"  • Re-run: [cyan]forgemind intake {project_file}[/cyan] (takes ~2 seconds)\n")
+
+        # Compliance warning for tenders
+        if domain == "tenders":
+            console.print(
+                "[yellow]⚠️  Compliance Note[/yellow]\n"
+                "For government tenders, validate ForgeMind outputs with legal/compliance team.\n"
+                "ForgeMind structures planning but cannot guarantee regulatory compliance.\n"
+            )
+
+        console.print(f"[dim]Full analysis: {output_dir}[/dim]")
 
     except FileNotFoundError as e:
-        console.print(f"[red]Error:[/red] {e}")
+        console.print(f"[red]✗ File error:[/red] {e}")
+        console.print("[bold]Next steps:[/bold]")
+        console.print("  1. Check project format: [cyan]docs/FIRST_TIME_USER_GUIDE.md[/cyan] (Step 4)")
+        console.print("  2. Ensure all required sections present (Objective, Context, Scope)")
+        console.print("  3. Re-run: [cyan]forgemind intake your_project.md[/cyan]\n")
+        console.print("[cyan]Still stuck?[/cyan] Report at github.com/forgemind/issues")
+        raise typer.Exit(1)
+
+    except Exception as e:
+        console.print(f"[red]✗ Analysis failed[/red]")
+        console.print(f"[dim]Error: {str(e)}[/dim]\n")
+        console.print("[bold]Next steps:[/bold]")
+        console.print("  1. Check project format: [cyan]docs/FIRST_TIME_USER_GUIDE.md[/cyan] (Step 4)")
+        console.print("  2. Ensure all required sections present (Objective, Context, Scope)")
+        console.print("  3. Re-run: [cyan]forgemind intake your_project.md[/cyan]\n")
+        console.print("[cyan]Still stuck?[/cyan] Report at github.com/forgemind/issues")
         raise typer.Exit(1)
 
 

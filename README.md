@@ -58,6 +58,42 @@ ForgeMind is the layer *before* AgentOps—before your agent runs, you need read
 
 ---
 
+## New to ForgeMind? Start Here
+
+[**→ First-Time User Guide** (15 minutes)](docs/FIRST_TIME_USER_GUIDE.md)
+
+A guided walkthrough covering:
+- Installation and your first project analysis
+- Understanding ForgeMind's capabilities and limitations
+- Deciding if ForgeMind matches your needs
+
+**Also read:**
+- [**What ForgeMind Is (and Is Not)**](#what-forgemind-is-and-is-not-2)
+- [**System Transparency Statement**](docs/AI_SYSTEM_TRANSPARENCY.md) (EU AI Act compliance)
+- [**Supported Domains**](docs/SUPPORTED_DOMAINS.md) (domain coverage matrix)
+
+---
+
+## What ForgeMind Is (and Is Not)
+
+### ✅ ForgeMind Is:
+- A **structured planning tool** that surfaces risks, assumptions, and gaps
+- **Analysis before execution** — helps you decide if work is worth doing
+- **Local and private** — runs on your computer, never goes to the cloud
+- **Domain-aware** — generates guidance specific to software, AI/ML, QMS, and other domains
+- **Honest about limitations** — tells you what it can and cannot do
+
+### ❌ ForgeMind Is NOT:
+- A decision-maker (you decide what to do with its analysis)
+- A code generator (it generates documents, not executable code)
+- A guarantee of success (good planning reduces risk, doesn't eliminate it)
+- A compliance certifier (it structures planning, you validate with experts)
+- A replacement for human review (all outputs require validation by qualified personnel)
+
+**[Full transparency statement →](docs/AI_SYSTEM_TRANSPARENCY.md)**
+
+---
+
 ## Why ForgeMind?
 
 ### The Problem
@@ -130,6 +166,15 @@ pip install -e ".[dev]"
 ```bash
 pip install forgemind
 ```
+
+### First-Time Setup
+
+When you run `forgemind init` for the first time, ForgeMind will show you:
+- A 2-minute orientation explaining what ForgeMind does
+- What ForgeMind does NOT do (limitations)
+- An option to run the demo analysis
+
+See [First-Time User Guide](docs/FIRST_TIME_USER_GUIDE.md) for step-by-step walkthrough.
 
 ---
 

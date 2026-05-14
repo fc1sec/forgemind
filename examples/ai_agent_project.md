@@ -1,5 +1,72 @@
 # AI Backend Automation Project
 
+> **Example Type**: Complete AI/ML Project  
+> **Domain**: `ai_project`  
+> **How to use**: Run `forgemind intake examples/ai_agent_project.md` to generate analysis  
+> **Time to analyze**: ~2 seconds  
+> **Generated outputs location**: `forgemind_outputs/ai-backend-automation-project/`
+
+---
+
+## What ForgeMind Will Generate
+
+When you analyze this project, ForgeMind will create 17 documents:
+
+**Core Analysis Documents:**
+- `PROJECT_CHARTER.md` — Clear objective, scope, success criteria, stakeholders
+- `RISK_REGISTER.md` — Detailed risk analysis for AI/ML (security, hallucination, scope creep risks)
+- `ASSUMPTION_LOG.md` — Critical assumptions (about model quality, API availability, etc.)
+- `ACCEPTANCE_CRITERIA.md` — Testable success metrics
+- `CONTROL_PLAN.md` — How to prevent scope creep and maintain boundaries
+
+**Framework Lenses:**
+- `RDMAICSI_MATRIX.md` — Eight-phase improvement cycle (Recognize→Integrate)
+- `SENGE_LENS.md` — Five disciplines for learning organizations
+- `LEAN_WASTE_SCAN.md` — Where time/money could be wasted
+- `DECISION_LOG.md` — Key decisions and reasoning
+
+**AI/ML Specific Documents:**
+- `AI_RISK_CHECKLIST.md` — Hallucination, safety, security concerns
+- `TOOL_PERMISSION_MATRIX.md` — What the agent can and cannot do
+- `AGENT_HANDOFF.md` — Complete context for Claude Code or other AI agents
+- `AGENT_PR_TEMPLATE.md` — PR submission requirements for agent-generated code
+- `AGENT_ISSUE_TEMPLATE.md` — Feedback template for issues
+
+**Reference & Navigation:**
+- `{project-slug}.context.md` — Rich agent instruction context with all risks, assumptions, gates
+- `README_OUTPUT_INDEX.md` — Guide to all 17 outputs
+
+**Plus: Reversal Plan** (if supported)
+- Enhanced context.md includes rollback strategy if agent fails or produces unsafe code
+
+---
+
+## Domain-Specific Notes for AI/ML Projects
+
+For AI/ML projects, **ForgeMind will:**
+- ✅ Identify safety and security risks (hallucination, data leaks, scope creep)
+- ✅ Flag human review gates (security team, engineering lead approval)
+- ✅ Create agent handoff with clear boundaries and constraints
+- ✅ Suggest testing gates and validation strategies
+- ✅ Highlight assumptions about model behavior
+
+**ForgeMind will NOT:**
+- ❌ Design your agent's architecture
+- ❌ Guarantee the agent will be safe (you provide domain expertise)
+- ❌ Write agent code
+- ❌ Certify compliance with AI safety standards
+
+**What you need to do:**
+- Validate ForgeMind's risk assessment with your ML/Security team
+- Define exact agent boundaries and permissions (ForgeMind creates a template)
+- Run comprehensive tests before production
+- Monitor agent behavior post-deployment
+- Document failures and iterate
+
+---
+
+## The Project
+
 ## Objective
 Develop an AI-powered agent that can autonomously generate and deploy backend microservices based on specifications, accelerating development velocity while ensuring code quality and security standards.
 

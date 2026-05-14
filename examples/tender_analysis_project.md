@@ -1,5 +1,67 @@
 # Tender Analysis and Compliance Project
 
+> **Example Type**: Government Tender / Government Contract  
+> **Domain**: `tenders`  
+> **⚠️ Important**: Tender analysis requires legal/compliance expert validation  
+> **How to use**: Run `forgemind intake examples/tender_analysis_project.md` to generate analysis  
+> **Time to analyze**: ~2 seconds  
+
+---
+
+## ⚠️ Critical: Tender Projects Require Expert Validation
+
+**ForgeMind is a planning aid, not a compliance certifier.**
+
+For government tenders, you MUST:
+1. ✅ Use ForgeMind to structure your planning
+2. ✅ Have your legal/compliance team validate ALL outputs
+3. ✅ Document their approval in your DECISION_LOG
+4. ❌ Do NOT submit based solely on ForgeMind analysis
+
+Tender requirements vary by:
+- Government level (federal, state, local)
+- Agency (DoD, EPA, GSA, etc.)
+- Contract type (services, products, hybrid)
+- Jurisdiction (US, state-specific rules, international)
+
+Your compliance team knows your jurisdiction. ForgeMind structures the planning. They validate the decision.
+
+---
+
+## What ForgeMind Will Generate
+
+When you analyze this project, ForgeMind will create 17 documents including:
+
+**Core Planning Documents:**
+- `PROJECT_CHARTER.md` — RFP objectives and scope
+- `RISK_REGISTER.md` — Compliance risks, non-conformance scenarios
+- `ASSUMPTION_LOG.md` — Assumptions about requirements interpretation
+- `CONTROL_PLAN.md` — Quality gates before submission
+
+**Tender-Specific Support:**
+- `DECISION_LOG.md` — Track each requirement decision and reasoning
+- `TOOL_PERMISSION_MATRIX.md` — Who can make compliance decisions
+- Compliance matrix ready for your team to populate with evidence
+
+---
+
+## Domain-Specific Notes for Tender Projects
+
+For government tenders, **ForgeMind will:**
+- ✅ Help structure RFP requirements analysis
+- ✅ Create compliance matrix template
+- ✅ Flag common risk areas (mandatory vs optional, proof requirements)
+- ✅ Identify timeline and resource constraints
+
+**ForgeMind will NOT:**
+- ❌ Interpret regulatory requirements (your compliance team does this)
+- ❌ Guarantee compliance (auditor/government agency determines)
+- ❌ Know jurisdiction-specific rules
+
+---
+
+## The Project
+
 ## Objective
 Win a major government tender by preparing a comprehensive, compliant proposal that demonstrates our capabilities and addresses all technical and compliance requirements clearly.
 
