@@ -81,10 +81,18 @@ ForgeMind's coverage is **declarative**, sourced from
 6 disciplines · 23 domains · 9 partial · 14 not covered · 6 out-of-scope by design
 ```
 
-Two real, attributed variants are shipped for ISO 9001 (CeSPI UNLP 8-state +
-industry-common minimalist 5-state). All other partial domains have one
-generic pattern each. See `ATTRIBUTIONS.md` for upstream credit and
-`CONTRIBUTING_REVERSE_PATTERNS.md` for how to contribute new variants.
+Three domains ship **plural** validated variants (each with full attribution
+and decision criteria):
+
+| Domain | Variants |
+|--------|----------|
+| `iso9001` | CeSPI UNLP 8-state · industry-common minimalist 5-state |
+| `software` | blue/green · canary |
+| `ai_ml` | feature-flag/checkpoint · shadow deployment |
+
+All other partial domains ship a single validated variant each. See
+`ATTRIBUTIONS.md` for upstream credit and `CONTRIBUTING_REVERSE_PATTERNS.md`
+for how to contribute new variants.
 
 ---
 
@@ -779,5 +787,5 @@ For issues, feature requests, or feedback:
 **Inspired by:** RDMAICSI, Peter Senge, Lean, Six Sigma, ISO/QMS
 **Grounded in (attributed):** iso-gestion (CeSPI UNLP, MIT) — see `ATTRIBUTIONS.md`
 **Philosophy:** Structure work rigorously. Refuse cleanly. Calibrate before generating.
-**Status:** v1.2.x consultant role • Beta maturity • 190 tests passing • CI green on Python 3.9 / 3.11 / 3.12
+**Status:** v1.2.x consultant role • Beta maturity • 213 tests passing • CI green on Python 3.9 / 3.11 / 3.12
 **Safety:** ✅ Backward compatible · Local-only · No telemetry · Refuses out-of-scope domains

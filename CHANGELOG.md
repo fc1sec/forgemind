@@ -1,5 +1,99 @@
 # ForgeMind Changelog
 
+## v1.2.x — Consultant Role (2026-05-13 → 2026-05-14)
+
+ForgeMind transitions from a one-shot "intake → 17 documents" tool into a
+**universal multidisciplinary consultant**. Six new layers ship across this
+release line, each independently tested:
+
+### Layer 1 — Disciplines taxonomy (Phase D)
+- `forgemind/data/disciplines.yaml` declares ForgeMind's coverage map
+  (6 disciplines · 23 domains · 6 out-of-scope-by-design).
+- `forgemind/disciplines/` Python module with typed API
+  (`Coverage`, `Discipline`, `Domain`, `Variant`, `DisciplineTaxonomy`).
+- `forgemind capabilities [--discipline X]` — full coverage report CLI.
+- `forgemind explain-limits <domain>` — variants + boundary conditions.
+- `EpistemicValidator` now consults the taxonomy for escalation routing.
+
+### Layer 2 — Consultant dialog (Phase C)
+- `forgemind consult <project.md>` — adaptive 4-step calibration:
+  discipline → domain → variant → confirm, before generating outputs.
+- Structured refusal protocol (exit code 2 + escalation contact) for
+  out-of-scope-by-design and not-covered domains.
+- Writes `CONSULTANT_CALIBRATION.md` (human) and
+  `consultant_calibration.json` (machine-readable sidecar) alongside the
+  17 standard outputs.
+- `--auto-accept` for CI / scripting; `--output-dir` override.
+
+### Layer 3 — Variant pluralism
+Three disciplines now ship plural validated variants, all with attribution
+and decision criteria (`when_to_choose`, `pros`, `cons`):
+- **ISO 9001**: CeSPI UNLP 8-state lifecycle (production since 2014,
+  iso-gestion, MIT) + industry-common minimalist 5-state.
+- **software**: blue/green (Fowler) + canary (Google SRE Workbook).
+- **ai_ml**: feature-flag/checkpoint + shadow deployment
+  (Sculley 2015; Sato 2019; Netflix Tech Blog).
+
+### Layer 4 — Variant comparison
+- `forgemind compare-variants <domain>` — side-by-side decision card with
+  when-to-choose, pros, cons per variant.
+- Consultant offers an inline "Show me a side-by-side comparison first"
+  option at the variant step when multiple variants are available.
+
+### Layer 5 — Follow-up
+- `forgemind followup <output_dir>` — drill into one decision (variant,
+  risks, acceptance criteria, escalation) without re-running analysis.
+- Three modes: interactive menu, `--topic <key>` single render,
+  `--auto-accept` print-and-exit.
+
+### Layer 6 — Persistent memory
+- `~/.forgemind/history.jsonl` records each successful consult locally.
+- `forgemind history [--limit N] [--clear]` to view or erase.
+- Consultant defaults are biased by the user's prior choices (the prior
+  variant becomes the default in the variant question, etc.).
+- `FORGEMIND_HISTORY_PATH` env var to override the path (used in tests).
+- LOCAL ONLY: no network, no telemetry.
+
+### Variant-aware outputs
+- `forgemind consult` now writes `REVERSAL_PLAN.md` derived from the
+  chosen variant's state machine. Picking CeSPI 8-state vs minimalist
+  5-state produces materially different reversal-plan tables.
+- The variant-aware reversal generator lives in
+  `forgemind/consultant/variant_output.py` and falls back gracefully
+  when a domain has no plugin.
+
+### Taxonomy ↔ plugin alignment
+- Domain ids `web_services` and `ml_systems` were renamed to `software`
+  and `ai_ml` respectively so the calibrated taxonomy domain matches the
+  plugin registry domain. This unblocked the variant-aware output flow.
+
+### Attribution
+- `ATTRIBUTIONS.md` credits each external source ForgeMind codifies
+  patterns from: iso-gestion (CeSPI UNLP), Martin Fowler bliki, Google
+  SRE Workbook, Sculley et al. NeurIPS 2015, Sato et al. CD4ML, Netflix
+  Tech Blog. No upstream code is redistributed.
+
+### Documentation
+- `README.md` updated with the consultant workflow (5-command flow,
+  refusal protocol, self-knowledge summary).
+- `CONTRIBUTING_REVERSE_PATTERNS.md` extended with the v1.2.x
+  architecture (variants, taxonomy YAML, decision criteria, attribution
+  + self-test commands).
+
+### Test posture
+- 213 tests passing (96 base v1.2.1 + 117 net new across the six layers)
+- 85% line coverage
+- Python 3.9 / 3.11 / 3.12 green on GitHub Actions
+- All ruff checks clean
+
+### Breaking changes
+- None for `forgemind intake` (the direct mode is unchanged).
+- Taxonomy domain ids renamed: `web_services` → `software`,
+  `ml_systems` → `ai_ml`. Anyone reading the YAML programmatically
+  should update keys.
+
+---
+
 ## v1.1.0 — Context Engineering Release (2026-05-13)
 
 ### 🎯 What's New
