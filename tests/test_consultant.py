@@ -134,18 +134,25 @@ class TestSessionQMSHappyPath:
         turn = session.next_turn()
         assert turn is not None
         assert turn.purpose.startswith("Domain")
-        # Find the iso9001 option index
         iso_index = next(
             i for i, opt in enumerate(turn.options) if opt.value == "iso9001"
         )
         session.answer(turn, iso_index)
 
-        # iso9001 has exactly 1 variant — variant question should be skipped
+        # Step 3: variant — iso9001 has 2 variants, so the question should fire
+        turn = session.next_turn()
+        assert turn is not None
+        assert turn.purpose.startswith("Variant"), turn.purpose
+        # Pick the production-validated CeSPI variant
+        cespi_idx = next(
+            i for i, opt in enumerate(turn.options) if opt.value == "cespi_unlp_8state"
+        )
+        session.answer(turn, cespi_idx)
+
+        # Step 4: confirm
         turn = session.next_turn()
         assert turn is not None
         assert turn.purpose == "Proceed confirmation"
-
-        # Confirm
         session.answer(turn, 0)  # yes
         assert session.next_turn() is None
         assert session.outcome() == CalibrationOutcome.READY
@@ -153,14 +160,20 @@ class TestSessionQMSHappyPath:
     def test_disclosure_lists_variant_and_boundaries(self, qms_project: Path):
         session = ConsultantSession(qms_project)
         session.load_project()
-        # Walk to confirmation
-        turn = session.next_turn()
-        session.answer(turn, 0)  # quality_management
+        # discipline
+        session.answer(session.next_turn(), 0)  # quality_management
+        # domain → iso9001
         turn = session.next_turn()
         iso_index = next(
             i for i, opt in enumerate(turn.options) if opt.value == "iso9001"
         )
         session.answer(turn, iso_index)
+        # variant → cespi (now required because iso9001 has 2 variants)
+        turn = session.next_turn()
+        cespi_idx = next(
+            i for i, opt in enumerate(turn.options) if opt.value == "cespi_unlp_8state"
+        )
+        session.answer(turn, cespi_idx)
 
         disclosures = "\n".join(session.disclosures())
         assert "ISO 9001" in disclosures
@@ -225,6 +238,12 @@ class TestCancellation:
         turn = session.next_turn()
         idx = next(i for i, opt in enumerate(turn.options) if opt.value == "iso9001")
         session.answer(turn, idx)
+        # variant → cespi (iso9001 has 2 variants now)
+        turn = session.next_turn()
+        cespi_idx = next(
+            i for i, opt in enumerate(turn.options) if opt.value == "cespi_unlp_8state"
+        )
+        session.answer(turn, cespi_idx)
         # confirm → no
         turn = session.next_turn()
         assert turn.purpose == "Proceed confirmation"
@@ -274,6 +293,118 @@ class TestErrors:
         turn = session.next_turn()
         with pytest.raises(ValueError):
             session.answer(turn, 999)
+
+
+# ----------------------------------------------------------------------
+# Variant pluralism — ISO 9001 now has 2 variants; user must choose
+# ----------------------------------------------------------------------
+
+
+class TestVariantPluralism:
+    """Verify the consultant offers and records the user's variant choice."""
+
+    def test_iso9001_offers_both_variants(self, qms_project: Path):
+        session = ConsultantSession(qms_project)
+        session.load_project()
+        # Walk to the variant step
+        session.answer(session.next_turn(), 0)  # discipline
+        turn = session.next_turn()  # domain
+        iso_idx = next(
+            i for i, opt in enumerate(turn.options) if opt.value == "iso9001"
+        )
+        session.answer(turn, iso_idx)
+        # Variant turn must be present and offer both variants
+        turn = session.next_turn()
+        assert turn is not None and turn.purpose.startswith("Variant")
+        values = {opt.value for opt in turn.options}
+        assert "cespi_unlp_8state" in values
+        assert "iso9001_minimalist_5state" in values
+
+    def test_choosing_minimalist_variant_records_in_disclosure(self, qms_project: Path):
+        session = ConsultantSession(qms_project)
+        session.load_project()
+        session.answer(session.next_turn(), 0)  # discipline
+        turn = session.next_turn()  # domain
+        iso_idx = next(
+            i for i, opt in enumerate(turn.options) if opt.value == "iso9001"
+        )
+        session.answer(turn, iso_idx)
+        turn = session.next_turn()  # variant
+        min_idx = next(
+            i
+            for i, opt in enumerate(turn.options)
+            if opt.value == "iso9001_minimalist_5state"
+        )
+        session.answer(turn, min_idx)
+        # Variant is recorded in calibration state
+        assert session.calibration.variant is not None
+        assert session.calibration.variant.id == "iso9001_minimalist_5state"
+        # And reflected in disclosures
+        text = "\n".join(session.disclosures())
+        assert "Minimalist" in text or "5-state" in text
+
+    def test_plugin_can_construct_with_each_variant(self):
+        """The plugin itself supports both variants at the code level."""
+        from forgemind.plugins.iso9001_pattern import ISO9001ReversePattern
+
+        cespi = ISO9001ReversePattern(variant_id="cespi_unlp_8state")
+        minimalist = ISO9001ReversePattern(variant_id="iso9001_minimalist_5state")
+        # Distinct state machines
+        cespi_states = {s.state_name for s in cespi.get_supported_states()}
+        min_states = {s.state_name for s in minimalist.get_supported_states()}
+        assert "Created" in cespi_states  # CeSPI-only state
+        assert "In Force" in cespi_states  # CeSPI-only state
+        assert "Created" not in min_states
+        assert "In Force" not in min_states
+        # Both share canonical states
+        assert {"Draft", "Under Review", "Approved", "Signed", "Obsolete"} <= min_states
+        assert {"Draft", "Under Review", "Approved", "Signed", "Obsolete"} <= cespi_states
+
+    def test_plugin_default_variant_is_cespi(self):
+        from forgemind.plugins.iso9001_pattern import ISO9001ReversePattern
+
+        default = ISO9001ReversePattern()
+        assert default.variant_id == "cespi_unlp_8state"
+
+    def test_plugin_rejects_unknown_variant(self):
+        from forgemind.plugins.iso9001_pattern import ISO9001ReversePattern
+
+        with pytest.raises(ValueError):
+            ISO9001ReversePattern(variant_id="not_a_real_variant")
+
+
+# ----------------------------------------------------------------------
+# Auditability — CONSULTANT_CALIBRATION.md is written when consult completes
+# ----------------------------------------------------------------------
+
+
+class TestCalibrationAuditFile:
+    def test_calibration_log_written_to_output_dir(
+        self, qms_project: Path, tmp_path: Path
+    ):
+        runner = CliRunner()
+        out_dir = tmp_path / "outputs"
+        result = runner.invoke(
+            app,
+            [
+                "consult",
+                str(qms_project),
+                "--auto-accept",
+                "--output-dir",
+                str(out_dir),
+            ],
+        )
+        assert result.exit_code == 0, result.stdout
+        log = out_dir / "CONSULTANT_CALIBRATION.md"
+        assert log.exists(), "CONSULTANT_CALIBRATION.md must be written by consult"
+        content = log.read_text(encoding="utf-8")
+        # Records the calibration choices
+        assert "Quality Management Systems" in content
+        assert "ISO 9001" in content
+        # And the variant
+        assert "cespi_unlp_8state" in content or "CeSPI" in content
+        # And the escalation contact
+        assert "Escalate to" in content
 
 
 # ----------------------------------------------------------------------

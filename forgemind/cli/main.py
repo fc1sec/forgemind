@@ -463,6 +463,64 @@ def version() -> None:
     console.print(f"[cyan]ForgeMind[/cyan] v{__version__}")
 
 
+def _write_calibration_log(log_path: Path, session) -> None:
+    """Persist a calibration audit log next to the generated outputs.
+
+    Auditability is part of the consultant contract: a reviewer must be able to
+    answer "what did ForgeMind calibrate to?" without re-running the session.
+    """
+    c = session.calibration
+    lines = [
+        "# Consultant Calibration Log",
+        "",
+        f"- Project file: `{session.project_file}`",
+        f"- Taxonomy version: {session.taxonomy.version}",
+        f"- Taxonomy last updated: {session.taxonomy.last_updated}",
+        "",
+        "## Calibration choices",
+        "",
+    ]
+    if c.discipline:
+        lines.append(f"- **Discipline**: {c.discipline.name} (`{c.discipline.id}`)")
+    if c.domain:
+        cov = c.domain.coverage.value
+        conf = (
+            f", confidence {c.domain.confidence:.0%}"
+            if c.domain.confidence is not None
+            else ""
+        )
+        lines.append(f"- **Domain**: {c.domain.name} (`{c.domain.id}`) — {cov}{conf}")
+    if c.variant:
+        lines.append(f"- **Variant**: {c.variant.name} (`{c.variant.id}`)")
+        if c.variant.source:
+            lines.append(f"  - Source: {c.variant.source}")
+        if c.variant.url:
+            lines.append(f"  - URL: {c.variant.url}")
+        lines.append(f"  - Confidence: {c.variant.confidence:.0%}")
+        if c.variant.production_validated:
+            since = f" since {c.variant.since}" if c.variant.since else ""
+            lines.append(f"  - Production-validated{since}")
+    if c.domain and c.domain.boundary_conditions:
+        lines.append("")
+        lines.append("## Known gaps disclosed at calibration time")
+        lines.append("")
+        for bc in c.domain.boundary_conditions:
+            lines.append(f"- {bc}")
+    if c.domain and c.domain.escalate_to:
+        lines.append("")
+        lines.append("## Escalate to")
+        lines.append("")
+        lines.append(c.domain.escalate_to)
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append(
+        "Outputs were generated under the assumptions above. Re-run "
+        "`forgemind consult` if the project context changes materially."
+    )
+    log_path.write_text("\n".join(lines), encoding="utf-8")
+
+
 @app.command()
 def consult(
     project_file: str = typer.Argument(..., help="Path to the project markdown file"),
@@ -606,6 +664,11 @@ def consult(
     out_dir = Path(output_dir) if output_dir else Path("forgemind_outputs") / analysis.metadata.slug
     out_dir.mkdir(parents=True, exist_ok=True)
     export_markdown(analysis, out_dir)
+
+    # Persist the calibration log alongside the generated outputs so a
+    # reviewer can always answer "what did the consultant calibrate to?".
+    _write_calibration_log(out_dir / "CONSULTANT_CALIBRATION.md", session)
+
     console.print(f"[green]✓[/green] Outputs written to {out_dir}")
     console.print(
         "[dim]Outputs are STOCHASTIC — verify with the escalation contact "

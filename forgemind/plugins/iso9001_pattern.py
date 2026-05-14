@@ -76,10 +76,19 @@ class ISO9001ReversePattern(ReverseStatePattern):
         "two certified ISO 9001:2015 scopes."
     )
 
-    # State machine definition (8 states, derived from iso-gestion production
-    # workflow). Each state declares which prior state(s) it can revert to,
-    # whether the reversal is permitted, the role authorized to approve it,
-    # and the audit-trail template required by ISO §8.5.2 (traceability).
+    # Variant identifiers — must match disciplines.yaml entries for iso9001
+    VARIANT_CESPI_8STATE = "cespi_unlp_8state"
+    VARIANT_MINIMALIST_5STATE = "iso9001_minimalist_5state"
+    DEFAULT_VARIANT = VARIANT_CESPI_8STATE
+
+    # ------------------------------------------------------------------
+    # State machine definitions — one per variant
+    # ------------------------------------------------------------------
+
+    # CeSPI UNLP 8-state machine (production-validated since 2014).
+    # Each state declares which prior state(s) it can revert to, whether the
+    # reversal is permitted, the role authorized to approve it, and the
+    # audit-trail template required by ISO §8.5.2 (traceability).
     STATE_MACHINE = {
         "Draft": {
             "spanish_label": "En proceso de edición",
@@ -170,6 +179,93 @@ class ISO9001ReversePattern(ReverseStatePattern):
             "audit_entry": None,
         },
     }
+
+    # Minimalist 5-state machine — common in small organizations and
+    # startups that need a documented QMS but do not formalize a separate
+    # "Created", "Reviewed", "Under Approval" or "In Force" stage. This is
+    # essentially the canonical ForgeMind v1.x model preserved as a real,
+    # widely-observed alternative variant rather than a speculative one.
+    #
+    # Coverage tier: 0.70 (less production evidence than the CeSPI variant
+    # but the simplest legitimate ISO 9001:2015 §7.5 lifecycle).
+    MINIMALIST_STATE_MACHINE = {
+        "Draft": {
+            "spanish_label": "Borrador",
+            "can_revert_to": [],
+            "reversible": True,
+            "data_loss": "none",
+            "reason": "Initial state, no prior state to revert to",
+            "audit_entry": None,
+        },
+        "Under Review": {
+            "spanish_label": "En revisión",
+            "can_revert_to": ["Draft"],
+            "reversible": True,
+            "data_loss": "none",
+            "reason": "Reviewer may return document to author for corrections",
+            "approval_role": "document_author",
+            "audit_entry": "Returned to Draft by {actor} on {timestamp}\nReason: {reason}",
+        },
+        "Approved": {
+            "spanish_label": "Aprobado",
+            "can_revert_to": ["Under Review"],
+            "reversible": True,
+            "data_loss": "none",
+            "reason": "Approved but may be returned for revision if errors found",
+            "approval_role": "quality_manager",
+            "audit_entry": "Reverted from Approved to Under Review by {actor} on {timestamp}\nReason: {reason}",
+            "mitigation": "Triggers re-review cycle and stakeholder notification",
+        },
+        "Signed": {
+            "spanish_label": "Firmado",
+            "can_revert_to": [],
+            "reversible": False,
+            "data_loss": "none",
+            "reason": (
+                "Signed documents are historical records per §7.5.3.2 and cannot be "
+                "unsigned. Legal-equivalent of a notarized record."
+            ),
+            "mitigation": "Issue a new approved revision; mark old version Obsolete",
+            "audit_entry": "Signed document cannot be reverted",
+        },
+        "Obsolete": {
+            "spanish_label": "Obsoleto",
+            "can_revert_to": [],
+            "reversible": False,
+            "data_loss": "none",
+            "reason": "Obsolete documents are archived per §7.5.3.2",
+            "mitigation": "Re-issue with a new revision number",
+            "audit_entry": None,
+        },
+    }
+
+    # Mapping variant id → state machine. Add new variants here AND in
+    # disciplines.yaml so the consultant can offer them.
+    VARIANTS = {
+        VARIANT_CESPI_8STATE: STATE_MACHINE,
+        VARIANT_MINIMALIST_5STATE: MINIMALIST_STATE_MACHINE,
+    }
+
+    # ------------------------------------------------------------------
+    # Construction (variant selection)
+    # ------------------------------------------------------------------
+
+    def __init__(self, variant_id: Optional[str] = None) -> None:
+        """Construct an ISO 9001 plugin bound to a specific variant.
+
+        Args:
+            variant_id: One of the VARIANTS keys. Defaults to the CeSPI
+                8-state machine (the most production-validated variant).
+        """
+        self.variant_id = variant_id or self.DEFAULT_VARIANT
+        if self.variant_id not in self.VARIANTS:
+            raise ValueError(
+                f"Unknown ISO 9001 variant: {self.variant_id}. "
+                f"Known: {sorted(self.VARIANTS.keys())}"
+            )
+        # Bind the active state machine on the INSTANCE so it shadows the
+        # class-level STATE_MACHINE attribute used throughout this file.
+        self.STATE_MACHINE = self.VARIANTS[self.variant_id]
 
     # ------------------------------------------------------------------
     # Public API

@@ -62,10 +62,17 @@ disciplines:
             production_validated: true
             since: "2014"
             scope_evidence: Two ISO 9001:2015 certified scopes, 30+ users, ~3000 records
+          - id: iso9001_minimalist_5state
+            name: Minimalist 5-state document lifecycle
+            source: Industry-common simplified QMS pattern (Draft → Under Review → Approved → Signed → Obsolete)
+            confidence: 0.70
+            production_validated: true
+            since: "Industry pattern"
+            scope_evidence: Commonly used by small organizations and startups requiring documented QMS without full lifecycle ceremony
         boundary_conditions:
-          - Other organizations may use 4-6 state variants (minimalist QMS)
           - Industry-specific extensions (pharma, aerospace, automotive) NOT modeled here
           - Document distribution mechanism (§7.5.3) modeled abstractly only
+          - Variant selection should be validated by your organization's QMS lead
         escalate_to: ISO 9001 lead auditor / QMS consultant
 
       iso13485:
