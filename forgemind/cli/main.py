@@ -56,8 +56,19 @@ def init() -> None:
         console.print("  ❌ Write code or deploy systems")
         console.print("  ❌ Certify compliance\n")
 
-        # Prompt for demo
-        if typer.confirm("Ready to see a 2-minute demo?", default=True):
+        # Prompt for demo (gracefully handle non-interactive environments
+        # such as CI/CD where stdin is closed, which raises EOFError on
+        # Python 3.10+ or Abort from click in some configurations).
+        wants_demo = False
+        try:
+            wants_demo = typer.confirm(
+                "Ready to see a 2-minute demo?", default=True
+            )
+        except Exception:
+            # Non-interactive mode (EOFError, Abort, etc.):
+            # skip demo prompt and continue
+            wants_demo = False
+        if wants_demo:
             console.print()
             console.print("[cyan]Next: Run the demo analysis[/cyan]")
             console.print("[cyan]forgemind intake forgemind_projects/sample_ai_project.md[/cyan]")
