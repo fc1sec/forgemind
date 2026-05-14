@@ -66,6 +66,15 @@ class PluginRegistry:
             return None
         return self._patterns[domain]()
 
+    def get_pattern_class(self, domain: str) -> Optional[type[ReverseStatePattern]]:
+        """Return the plugin CLASS for a domain (without instantiating it).
+
+        Use this when you need to instantiate the plugin with constructor
+        arguments (e.g. ``ISO9001ReversePattern(variant_id=...)``) that
+        ``get_pattern()`` cannot pass through.
+        """
+        return self._patterns.get(domain)
+
     def list_supported_domains(self) -> list[str]:
         """Return list of all supported domains."""
         return sorted(self._patterns.keys())

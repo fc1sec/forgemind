@@ -22,6 +22,10 @@ from .session import (
     ConsultantSession,
     ConsultantTurn,
 )
+from .variant_output import (
+    instantiate_for_variant,
+    write_variant_reversal_plan,
+)
 
 __all__ = [
     "CalibrationOutcome",
@@ -32,4 +36,6 @@ __all__ = [
     "FollowupSession",
     "FollowupTopic",
     "LoadedCalibration",
+    "instantiate_for_variant",
+    "write_variant_reversal_plan",
 ]

@@ -794,6 +794,31 @@ def consult(
         # History writes must never break output generation.
         pass
 
+    # Variant-aware extra output: REVERSAL_PLAN.md reflecting the chosen
+    # variant's state machine. This is the bridge from "user picked a
+    # variant" to "the outputs differ accordingly".
+    try:
+        from forgemind.consultant.variant_output import write_variant_reversal_plan
+
+        c = session.calibration
+        reversal_path = write_variant_reversal_plan(
+            out_dir=out_dir,
+            analysis=analysis,
+            variant_id=c.variant.id if c.variant else None,
+            variant_name=c.variant.name if c.variant else None,
+            variant_source=c.variant.source if c.variant else None,
+            # The calibrated taxonomy domain (e.g. "iso9001") is the
+            # authoritative key for plugin lookup; analysis.metadata.domain
+            # comes from the keyword classifier and may differ.
+            domain_id=c.domain.id if c.domain else None,
+        )
+        if reversal_path is not None:
+            tag = f" (variant: {c.variant.id})" if c.variant else " (default)"
+            console.print(f"[green]✓[/green] Reversal plan written to {reversal_path.name}{tag}")
+    except Exception as exc:  # noqa: BLE001
+        # A REVERSAL_PLAN.md failure must not block the 17 standard docs.
+        console.print(f"[yellow]⚠ Could not generate REVERSAL_PLAN.md:[/yellow] {exc}")
+
     console.print(f"[green]✓[/green] Outputs written to {out_dir}")
     console.print(
         "[dim]Outputs are STOCHASTIC — verify with the escalation contact "
