@@ -1,5 +1,141 @@
 # ForgeMind Changelog
 
+## v1.3.0 — Constitutional Governance (2026-05-16)
+
+ForgeMind absorbs the constitutional and operational doctrines of
+[fc1sec/CertOS-SAGA](https://github.com/fc1sec/CertOS-SAGA) and turns
+them into first-class ForgeMind primitives: a named doctrines registry,
+an HLS-Annex-SL multi-norm taxonomy upgrade, and five new output
+artefacts. ForgeMind is now able to anchor every recommendation it
+emits in a citable, attributed doctrine.
+
+### Layer 7 — Doctrines registry
+
+- New file: `forgemind/data/doctrines.yaml` (11 doctrines · 3 categories
+  · all sourced from CertOS-SAGA with normative anchors).
+- New module: `forgemind/doctrines/` typed API (`Doctrine`,
+  `DoctrineCategory`, `DoctrineSource`, `DoctrineRegistry`).
+- New CLI command: `forgemind doctrines [<id|short_id>] [--category]`
+  — list every doctrine, or show purpose + summary + normative anchors
+  + source URL for a single one.
+- Anti-hallucination invariant (test-enforced): every doctrine MUST
+  declare a source attribution AND at least one normative anchor.
+
+### Layer 8 — Multi-norm Annex SL coverage upgrade
+
+Six management-system standards move from `not_covered` to `partial`,
+each with an `hls_annex_sl_clause_map` variant + honest boundary
+conditions about what ForgeMind does **not** model:
+
+- `iso13485` (Medical Devices) — HLS skeleton; design controls / ISO
+  14971 / FDA QSR / EU MDR submission packs still escalate.
+- `iso14001` (Environmental) — HLS skeleton; aspects/impacts methodology
+  + Amd 1:2024 climate-action evidence still escalate.
+- `iso45001` (OH&S) — HLS skeleton; hazard identification + worker
+  consultation + incident investigation still escalate.
+- `iso27001` (Information Security 2022) — HLS skeleton; Annex A (93
+  controls) + Statement of Applicability + ISO/IEC 27005 still escalate.
+- `iso42001` (AI Management System) — HLS skeleton + AIIA + Skill Card +
+  Capability Thresholds; Annex B/C controls + external certification still escalate.
+- `iso22301` (Business Continuity) — HLS skeleton; BIA + RTO/RPO +
+  exercise programme still escalate.
+
+Two new domains within `operations_methodops`:
+
+- `pokayoke_patterns` — 10-type mistake-proofing taxonomy (Shingo ZQC
+  operationalised in CertOS-SAGA D30 for ERP/QMS change discipline).
+- `agnostic_task_routing` — 7-tier decision hierarchy (rule → cache →
+  small model → strong model → human) from CertOS-SAGA D06.
+
+### Layer 9 — Constitutional-governance outputs
+
+Five new artefacts join the standard output bundle:
+
+**Universal (every project)**:
+- `EVIDENCE_SCORING.md` — 5-level confidence scale + penalties +
+  3-tier integrity (SHA-256 chain → Ed25519 signature → NOM-151/RFC 3161).
+  Anchors: D17 + D37.
+- `TOKEN_COST_GOVERNANCE.md` — 5-level routing decision card + 7-step
+  agnostic routing hierarchy + per-task routing contract + cost-savings
+  rules. Anchors: D22 + D06.
+
+**AI / ML domains** (added when `analysis.metadata.domain` is one of
+`ai_project`, `ai_ml`, `llm_agents`, `classical_ml`):
+- `AIIA_PRE_DEPLOYMENT.md` — 8-section AI Impact Assessment gate (NIST
+  AI 600-1 GenAI Profile 12 risks, EU AI Act Art. 9 categorisation,
+  signed approvals). Anchor: D40 (ISO/IEC 42001 §6.1.4).
+- `CAPABILITY_THRESHOLDS.md` — 7 hard HITL thresholds + agent behaviour
+  protocol + override policy. Anchors: D41 (Anthropic RSP, EU AI Act
+  Art. 14, NIST AI RMF GOVERN).
+- `SKILL_CARD.md` — 12-section machine-readable manual per AI skill
+  (identification → purpose → owners → model → capabilities → limits →
+  data accessed → accuracy metrics → safe-use assumptions → fallback →
+  version history → signature block). Anchors: D43 (EU AI Act Art. 13,
+  OECD AI Principles, ISO/IEC 42001 §7.5).
+
+Output count grows from 17 → **19** (universal) or **22** (AI/ML domains).
+
+### Coverage snapshot
+
+```
+6 disciplines · 25 domains · 17 partial · 4 not covered · 6 out-of-scope by design
+                                              ↑ up from 9 partial in v1.2.x
+```
+
+### Compatibility
+
+- v1.2.x and v1.1.0 projects work unchanged.
+- No public-API breaking changes; `forgemind doctrines` is purely additive.
+- Output bundle is a strict superset of v1.2.x.
+
+### Attribution
+
+All new doctrines and the multi-norm upgrade draw from
+[fc1sec/CertOS-SAGA](https://github.com/fc1sec/CertOS-SAGA) — see
+`ATTRIBUTIONS.md` for the per-doctrine source map and
+`forgemind doctrines <id>` for inline citations at runtime.
+
+### Layer 10 — Self-audit loop (eat-your-own-dogfood)
+
+After importing the doctrines, ForgeMind applied them **to itself** and
+found 4 blockers (no Constitution, no AIIA, no Capability Thresholds,
+no Skill Card for ForgeMind-the-tool). All 4 are now closed.
+
+- New module: `forgemind/self_audit/` — one check function per
+  registered doctrine; renders a `SelfAuditReport` as Markdown.
+- New CLI: `forgemind self-audit [--write-report] [--quiet]` — exits
+  non-zero on any blocker so CI can gate releases.
+- New CI step: `.github/workflows/tests.yml` runs `forgemind self-audit
+  --quiet` after the test suite.
+- New governance artefacts in `docs/governance/`:
+    · `FORGEMIND_CONSTITUTION.md` (anchored on D39 — mission, 5
+      lexicographic values, 3-question pre-invocation test, veto)
+    · `FORGEMIND_AIIA.md` (anchored on D40 — 8 sections; addresses the
+      meta-AI risk that ForgeMind shapes downstream-agent governance)
+    · `FORGEMIND_CAPABILITY_THRESHOLDS.md` (anchored on D41 — the 7
+      hard limits ForgeMind itself never crosses)
+    · `FORGEMIND_SKILL_CARD.md` (anchored on D43 — 12 sections; declares
+      `model = NONE (deterministic Python)` and `token cost = 0`)
+    · `SELF_AUDIT_REPORT.md` (regenerated by the CLI; do not hand-edit)
+- New tests (14): `tests/test_self_audit.py` enforces that
+    (a) every registered doctrine has a corresponding check function,
+    (b) no orphan checks exist,
+    (c) the governance/ artefacts exist and contain the required sections,
+    (d) the CLI exits zero on GREEN and writes a renderable report.
+
+**Outcome:** `forgemind self-audit` returns GREEN with 0 blockers,
+0 warnings, 7 info findings. The doctrines registry stops being
+decorative — every doctrine carries a check that verifies the codebase
+honours it.
+
+This implements **D02 Agentic RDMAICSI** as a closed loop on
+ForgeMind itself:
+R-recognize · D-define · M-measure (audit) · A-analyze (findings) ·
+I-improve (artifacts) · C-control (CI gate) · S-systematize
+(governance/ folder) · I-institutionalize (this CHANGELOG entry).
+
+---
+
 ## v1.2.x — Consultant Role (2026-05-13 → 2026-05-14)
 
 ForgeMind transitions from a one-shot "intake → 17 documents" tool into a

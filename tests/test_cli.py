@@ -18,9 +18,11 @@ def test_cli_help():
 
 def test_version_command():
     """Test version command."""
+    from forgemind import __version__
+
     result = runner.invoke(app, ["version"])
     assert result.exit_code == 0
-    assert "1.0.0" in result.stdout
+    assert __version__ in result.stdout
 
 
 def test_init_command(tmp_path):

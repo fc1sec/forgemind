@@ -1153,5 +1153,185 @@ def explain_limits(domain: str) -> None:
     )
 
 
+@app.command()
+def doctrines(
+    doctrine_id: Optional[str] = typer.Argument(
+        None,
+        help="Doctrine id or short id (e.g. 'capability_thresholds' or 'D41'). Omit to list all.",
+    ),
+    category: Optional[str] = typer.Option(
+        None,
+        "--category",
+        "-c",
+        help="Filter by category: constitutional, operational, or methodological.",
+    ),
+) -> None:
+    """List or show ForgeMind's citable doctrines.
+
+    Doctrines are named, attributed references ForgeMind anchors its outputs in
+    (today sourced from fc1sec/CertOS-SAGA). They explain WHY an output asks
+    for a HITL gate, an AIIA, a Skill Card, or a particular evidence tier.
+
+    Examples:
+        forgemind doctrines                     # list every doctrine
+        forgemind doctrines --category constitutional
+        forgemind doctrines D41                 # show capability_thresholds
+        forgemind doctrines aiia_pre_deployment
+    """
+    try:
+        from forgemind.doctrines import DoctrineCategory, get_doctrine_registry
+
+        registry = get_doctrine_registry()
+    except (FileNotFoundError, ValueError, ImportError) as exc:
+        console.print(f"[red]✗ Could not load doctrines registry:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+    if doctrine_id is None:
+        # List mode
+        if category:
+            try:
+                cat = DoctrineCategory(category.lower())
+            except ValueError as exc:
+                console.print(
+                    f"[red]✗ Unknown category:[/red] {category}\n"
+                    "Valid: constitutional, operational, methodological"
+                )
+                raise typer.Exit(1) from exc
+            entries = registry.list_by_category(cat)
+            console.print(f"[bold cyan]Doctrines · {cat.value}[/bold cyan]\n")
+        else:
+            entries = registry.list_all()
+            console.print(
+                f"[bold cyan]ForgeMind doctrines registry "
+                f"(v{registry.version} · {registry.last_updated})[/bold cyan]\n"
+            )
+
+        if not entries:
+            console.print("[yellow]No doctrines match this filter.[/yellow]")
+            return
+
+        for d in entries:
+            console.print(
+                f"  [bold]{d.short_id}[/bold]  "
+                f"[dim]{d.category.value:<16}[/dim]  "
+                f"{d.name}"
+            )
+            console.print(f"         [dim]id: {d.id}[/dim]")
+        console.print(
+            "\n[dim]Tip: `forgemind doctrines <short_id|id>` for the full doctrine.[/dim]"
+        )
+        return
+
+    # Show mode
+    doctrine = registry.get(doctrine_id)
+    if doctrine is None:
+        console.print(f"[red]✗ Unknown doctrine:[/red] {doctrine_id}")
+        console.print("\nRun [cyan]forgemind doctrines[/cyan] to list all known doctrines.")
+        raise typer.Exit(1)
+
+    console.print(
+        f"[bold]{doctrine.short_id} · {doctrine.name}[/bold] "
+        f"[dim]({doctrine.id})[/dim]"
+    )
+    console.print(f"[dim]Category: {doctrine.category.value}[/dim]\n")
+    console.print("[bold]Purpose[/bold]")
+    console.print(doctrine.purpose)
+    console.print()
+    console.print("[bold]Summary[/bold]")
+    console.print(doctrine.summary)
+    console.print()
+    if doctrine.when_to_cite:
+        console.print("[bold]When to cite[/bold]")
+        for w in doctrine.when_to_cite:
+            console.print(f"  • {w}")
+        console.print()
+    if doctrine.normative_anchors:
+        console.print("[bold]Normative anchors[/bold]")
+        for a in doctrine.normative_anchors:
+            console.print(f"  • {a}")
+        console.print()
+    src = doctrine.source
+    if src.repo or src.url:
+        console.print("[bold]Source[/bold]")
+        if src.repo:
+            console.print(f"  repo:    {src.repo}")
+        if src.path:
+            console.print(f"  path:    {src.path}")
+        if src.url:
+            console.print(f"  url:     {src.url}")
+        if src.license_note:
+            console.print(f"  [dim]{src.license_note}[/dim]")
+
+
+@app.command("self-audit")
+def self_audit(
+    write_report: bool = typer.Option(
+        False,
+        "--write-report",
+        help="Write docs/governance/SELF_AUDIT_REPORT.md with the findings.",
+    ),
+    quiet: bool = typer.Option(
+        False, "--quiet", "-q", help="Print only counts; suppress per-finding output."
+    ),
+) -> None:
+    """Apply ForgeMind's own doctrines to ForgeMind. Exit 1 if any blocker found.
+
+    This is ForgeMind's continuous-improvement loop (D02 Agentic RDMAICSI):
+    every doctrine in the registry has a check that verifies the codebase
+    honours its commitment. Wire this into CI to gate releases on a GREEN
+    self-audit.
+    """
+    try:
+        from forgemind.self_audit import FindingSeverity, run_self_audit
+        from forgemind.self_audit.audit import render_report_markdown
+    except ImportError as exc:
+        console.print(f"[red]✗ Could not load self-audit module:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+    report = run_self_audit()
+
+    status_color = "green" if report.is_green else "red"
+    status_label = "GREEN" if report.is_green else "BLOCKED"
+    console.print(
+        f"[bold]ForgeMind self-audit[/bold] · "
+        f"v{report.forgemind_version} · {report.audit_date} · "
+        f"[bold {status_color}]{status_label}[/bold {status_color}]"
+    )
+    console.print(
+        f"  Blockers: [bold]{report.blocker_count}[/bold] · "
+        f"Warnings: {report.warning_count} · "
+        f"Info: {report.info_count}"
+    )
+
+    if not quiet:
+        console.print()
+        for finding in report.findings:
+            if finding.severity is FindingSeverity.BLOCKER:
+                tag = "[red]BLOCKER[/red]"
+            elif finding.severity is FindingSeverity.WARNING:
+                tag = "[yellow]WARNING[/yellow]"
+            else:
+                tag = "[dim]INFO   [/dim]"
+            console.print(
+                f"  {tag} {finding.doctrine_short_id} — {finding.summary}"
+            )
+            if finding.remediation:
+                console.print(f"    [dim]remediation: {finding.remediation}[/dim]")
+
+    if write_report:
+        report_path = (
+            Path(__file__).resolve().parent.parent.parent
+            / "docs"
+            / "governance"
+            / "SELF_AUDIT_REPORT.md"
+        )
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(render_report_markdown(report))
+        console.print(f"\n[dim]Report written to {report_path}[/dim]")
+
+    if not report.is_green:
+        raise typer.Exit(1)
+
+
 if __name__ == "__main__":
     app()

@@ -128,6 +128,59 @@ theirs; no upstream code is copied.
 
 ---
 
+## CertOS-SAGA — Constitutional doctrines, multi-norm taxonomy, evidence model
+
+- **Source**: https://github.com/fc1sec/CertOS-SAGA
+- **Author**: Ulana Consorcio SAPI de CV (CertOS team, capa SAGA + capa
+  Constitucional 39-45, redacción original Ulana)
+- **License**: see upstream repository
+- **Production context**: SGC ISO 9001:2015 of a Mexican medical-device
+  distributor (Ulana Consorcio); CertOS is the agentic layer ferrying that
+  SGC toward external certification.
+
+### What ForgeMind uses (v1.3.0)
+
+ForgeMind codifies the following CertOS-SAGA doctrines into named,
+citable references in `forgemind/data/doctrines.yaml` and into output
+artefacts:
+
+**Constitutional layer (CertOS-SAGA capa 39-45)**:
+- D39 Agentic Constitution → cited by every constitutional output
+- D40 AIIA pre-deployment → `AIIA_PRE_DEPLOYMENT.md` template
+- D41 Capability Thresholds → `CAPABILITY_THRESHOLDS.md` artefact
+- D43 Skill Card → `SKILL_CARD.md` template (12 sections)
+- D45 AIMS integrated into SGC ISO 42001 → `iso42001` taxonomy variant
+
+**Operational layer (CertOS-SAGA capa SAGA)**:
+- D17 Evidence confidence scoring → `EVIDENCE_SCORING.md` confidence scale
+- D22 Token & cost governance → `TOKEN_COST_GOVERNANCE.md` decision levels
+- D37 Evidence integrity hash → `EVIDENCE_SCORING.md` integrity tiers
+- D38 Multi-norm extensibility (Annex SL) → `disciplines.yaml` HLS variants
+- D06 Agnostic task routing → `TOKEN_COST_GOVERNANCE.md` 7-step hierarchy
+
+**Methodological layer**:
+- D02 Agentic RDMAICSI → reinforces existing RDMAICSI generator
+- D05 Integral speed model → cited in routing / cadence recommendations
+
+**Taxonomy expansion** — HLS Annex SL variants added to `iso13485`,
+`iso14001`, `iso45001`, `iso27001`, `iso42001`, `iso22301`; the
+`pokayoke_patterns` and `agnostic_task_routing` domains are new.
+
+### What ForgeMind does NOT use
+
+- ForgeMind copies no Python or YAML files verbatim from CertOS-SAGA.
+- Doctrine bodies are paraphrased and condensed; the full CertOS-SAGA
+  text remains the source of truth (URL embedded in each doctrine entry).
+- CertOS-SAGA's runtime containment FSM (D42), red-team calendar (D44),
+  and Ulana-specific operational doctrines (D26-D30) are NOT codified
+  into ForgeMind — they live at CertOS runtime, not in a pre-execution
+  consultant.
+
+Every doctrine entry in `forgemind/data/doctrines.yaml` carries an inline
+`source.url` field pointing back to the canonical CertOS-SAGA file.
+
+---
+
 ## Reporting attribution issues
 
 If you are an author of a project whose patterns appear in ForgeMind and you

@@ -1,0 +1,406 @@
+# =============================================================================
+# ForgeMind — Constitutional & Operational Doctrines Registry
+# =============================================================================
+#
+# Doctrines are NAMED, CITABLE references that ForgeMind outputs can anchor to.
+# They are NOT inventions of ForgeMind — every doctrine is sourced from an
+# external, attributable corpus (today: CertOS-SAGA, fc1sec/CertOS-SAGA).
+#
+# Why a registry: when a generator emits "you need HITL on T1-T7 thresholds",
+# the user can ask `forgemind doctrines show capability_thresholds` and read
+# the full doctrine including its normative anchors (ISO 42001, NIST AI RMF,
+# EU AI Act, Anthropic RSP).
+#
+# Categories:
+#   constitutional  — governance, values, accountability, scope of authority
+#   operational     — how work flows: evidence, routing, cost, integrity
+#   methodological  — improvement-cycle and continuous-learning patterns
+#
+# Each entry MUST cite its source repo / paper / standard. ForgeMind never
+# fabricates a doctrine — if it doesn't exist upstream, the registry omits it.
+# =============================================================================
+
+version: "1.0"
+last_updated: "2026-05-16"
+
+doctrines:
+
+  # ---------------------------------------------------------------------------
+  # Constitutional layer (CertOS-SAGA capa 39-45)
+  # ---------------------------------------------------------------------------
+
+  agentic_constitution:
+    id: agentic_constitution
+    short_id: D39
+    name: Agentic Constitution — what the system is, does, and never does
+    category: constitutional
+    purpose: >
+      Declare the agentic layer's mission, lexicographic value hierarchy, and
+      the three-question test every sub-agent must pass before executing.
+    summary: >
+      Five values in strict precedence — (1) patient/user safety,
+      (2) regulatory compliance, (3) human authority, (4) transparency,
+      (5) operational efficiency. When two conflict, the lower-numbered wins.
+      Three-question test before any agent action: does it AMPLIFY human
+      capacity? does the human OWNER retain final authority? does the result
+      feed LIVE evidence?
+    when_to_cite:
+      - Generating AI agent governance / system-prompt scaffolds
+      - Producing AIIA or Skill Card outputs (cited in §Auto-governance)
+      - Any output that establishes scope-of-authority for an automated system
+    normative_anchors:
+      - UNESCO Recommendation on the Ethics of AI (2021)
+      - OECD AI Principles (revised 2024)
+      - Anthropic Constitutional AI + RSP v3.0
+      - ISO/IEC 42001:2023 cl. 5.2 (AI policy)
+      - ISO 9001:2015 cl. 5.2 (Quality policy)
+    source:
+      repo: fc1sec/CertOS-SAGA
+      path: doctrines/39-constitucion-agentica.md
+      url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/39-constitucion-agentica.md
+      license_note: Doctrine paraphrased from CertOS-SAGA; see source URL for the canonical text.
+
+  aiia_pre_deployment:
+    id: aiia_pre_deployment
+    short_id: D40
+    name: AI System Impact Assessment (AIIA) — pre-deployment gate
+    category: constitutional
+    purpose: >
+      Mandatory pre-deployment evaluation gate for any custom AI skill, agent,
+      MCP server, or agentic automation that will be used by anyone beyond
+      the implementer on a local sandbox.
+    summary: >
+      Eight-section template — (1) AI system identification, (2) declared
+      purpose, (3) affected stakeholders, (4) risk map (12 GenAI risks from
+      NIST AI 600-1), (5) EU AI Act categorization, (6) binding controls
+      (HITL + capability thresholds + reversal plan + logging + skill card +
+      red-team enrollment), (7) pilot plan, (8) signed approvals.
+    when_to_cite:
+      - Before promoting an AI agent from sandbox to shared use
+      - Before activating a new MCP with write access to a production system
+      - When a pilot will touch real user data, even locally
+    normative_anchors:
+      - ISO/IEC 42001:2023 §6.1.4 (AI System Impact Assessment)
+      - EU AI Act Art. 9 (Risk management system for high-risk AI)
+      - NIST AI RMF 1.0 GenAI Profile (AI 600-1, July 2024) — MAP function
+      - ISO 9001:2015 cl. 6.1 + 6.3 (Risks & planned changes)
+    source:
+      repo: fc1sec/CertOS-SAGA
+      path: doctrines/40-aiia-previo-despliegue-skill.md
+      url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/40-aiia-previo-despliegue-skill.md
+      license_note: Doctrine paraphrased from CertOS-SAGA; see source URL for the canonical text.
+
+  capability_thresholds:
+    id: capability_thresholds
+    short_id: D41
+    name: Capability Thresholds — seven actions that never auto-execute
+    category: constitutional
+    purpose: >
+      Define explicit, binding capability thresholds the agentic layer NEVER
+      crosses without a human signature, regardless of confidence, operator
+      instruction, or expected efficiency gain.
+    summary: |
+      Seven hard thresholds (T1-T7), each triggering a HITL package automatically:
+        T1 · Legal signature or institutional representation
+        T2 · Decisions with safety-critical end-user impact
+        T3 · Formal closure of CAPA, NC, or audit finding
+        T4 · Approval / publication of a controlled QMS document
+        T5 · Write operations to production systems
+        T6 · Acceptance of high or critical risk
+        T7 · Institutional external communication
+      Operator override is recorded as an audit event and triggers review.
+      Thresholds can only be modified via signed ADR + management review.
+    when_to_cite:
+      - Generating HITL gate tables for AI/ML or QMS projects
+      - Hard-limit clauses in agent permission matrices
+      - Risk-register entries for autonomous-action overreach
+    normative_anchors:
+      - Anthropic Responsible Scaling Policy v3.0 (ASL-3 active since May 2025)
+      - EU AI Act Art. 14 (Human oversight)
+      - NIST AI RMF 1.0 — GOVERN function
+      - UNESCO 2021 — Human supervision and determination
+    source:
+      repo: fc1sec/CertOS-SAGA
+      path: doctrines/41-capability-thresholds.md
+      url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/41-capability-thresholds.md
+      license_note: Doctrine paraphrased from CertOS-SAGA; see source URL for the canonical text.
+
+  skill_card_mandatory:
+    id: skill_card_mandatory
+    short_id: D43
+    name: Skill Card — machine-readable manual per sub-agent
+    category: constitutional
+    purpose: >
+      Standardize per-skill documentation in a single machine-readable artifact
+      so any operator who invokes a sub-agent knows its purpose, limits,
+      accuracy metrics, safe-use assumptions, accessed data, and escalation
+      contact.
+    summary: |
+      Twelve sections per CARD.md — identification · declared purpose
+      (constitutional anchor) · owners · underlying model · declared
+      capabilities · explicit limits (incl. capability thresholds) · accessed
+      data · accuracy metrics · safe-use assumptions · fallback plan · version
+      history · hash & signature. CARD must be published BEFORE the skill is
+      callable by anyone other than its implementer.
+    when_to_cite:
+      - Producing the manifest for any agent/skill the user is about to ship
+      - Documenting the "instructions for use" required by EU AI Act Art. 13
+      - Anchoring the runtime "first-invocation summary" UI/CLI surface
+    normative_anchors:
+      - EU AI Act Art. 13 (Transparency & provision of information to deployers)
+      - OECD AI Principles (revised 2024) — Transparency & explainability
+      - NIST AI RMF — MAP + MEASURE functions
+      - ISO/IEC 42001:2023 §7.5 (Documented information for AIMS)
+      - ISO 9001:2015 cl. 7.5 (Controlled documented information)
+    source:
+      repo: fc1sec/CertOS-SAGA
+      path: doctrines/43-skill-card-obligatoria.md
+      url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/43-skill-card-obligatoria.md
+      license_note: Doctrine paraphrased from CertOS-SAGA; see source URL for the canonical text.
+
+  aims_integrated_sgc:
+    id: aims_integrated_sgc
+    short_id: D45
+    name: AIMS integrated into SGC under ISO/IEC 42001
+    category: constitutional
+    purpose: >
+      Declare that the AI Management System operates as an organic extension
+      of the existing ISO 9001 SGC, sharing document control, internal audit,
+      management review, risk management and CAPA — no parallel system.
+    summary: |
+      ISO/IEC 42001:2023 shares the Annex SL High-Level Structure with
+      ISO 9001:2015. Clauses 4-10 map one-to-one with six no-duplication
+      rules: one document control · one internal audit programme · one
+      management review · one NC/CAPA register · one policy (the Constitution
+      D39 satisfies both 9001 cl. 5.2 and 42001 cl. 5.2) · one risk register.
+    when_to_cite:
+      - Mapping an AIMS clause-by-clause against an existing SGC
+      - Justifying "do not create a parallel system" architectural decisions
+      - Designing a management review minute that covers both 9001 + 42001
+    normative_anchors:
+      - ISO/IEC 42001:2023 (AI Management System, HLS Annex SL)
+      - ISO 9001:2015 with Amd 1:2024
+      - EU AI Act Art. 17 (QMS for high-risk AI providers, voluntary baseline)
+      - NIST AI RMF — GOVERN function
+    source:
+      repo: fc1sec/CertOS-SAGA
+      path: doctrines/45-aims-integrado-sgc-iso42001.md
+      url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/45-aims-integrado-sgc-iso42001.md
+      license_note: Doctrine paraphrased from CertOS-SAGA; see source URL for the canonical text.
+
+  # ---------------------------------------------------------------------------
+  # Operational layer
+  # ---------------------------------------------------------------------------
+
+  evidence_confidence_scoring:
+    id: evidence_confidence_scoring
+    short_id: D17
+    name: Evidence confidence scoring (1-5 with penalties)
+    category: operational
+    purpose: >
+      Make every piece of evidence labelable with a 1-5 confidence score,
+      with explicit penalties for expired / unowned / unversioned / manually
+      captured items.
+    summary: |
+      Five levels:
+        1 · Manual reference, source unclear         → indication only
+        2 · File exists, metadata insufficient       → requires validation
+        3 · File with date, owner, location          → preliminary evidence
+        4 · System record with ID and owner          → reliable evidence
+        5 · System record with version, hash, vigency, human validation → strong
+      Penalties: expired · no owner · no process linkage · no version · manual
+      capture · uncontrolled source.
+    when_to_cite:
+      - Acceptance criteria that depend on evidence quality
+      - Audit-evidence dossier generation
+      - Risk-register items where evidence quality is itself a risk
+    normative_anchors:
+      - ISO 9000:2015 §3 (evidence definitions)
+      - ISO 19011:2018 §6.4 (audit evidence)
+    source:
+      repo: fc1sec/CertOS-SAGA
+      path: doctrines/17-scoring-confianza.md
+      url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/17-scoring-confianza.md
+
+  evidence_integrity_hash:
+    id: evidence_integrity_hash
+    short_id: D37
+    name: Evidence integrity — three-tier hash + signature + time-stamp
+    category: operational
+    purpose: >
+      Cryptographic integrity for evidence in three austere tiers, distinguishing
+      real operational evidence from agent-generated narrative.
+    summary: |
+      Tier 0 — SHA-256 hash + linked chain (day 1, near-zero cost)
+      Tier 1 — Ed25519 human signature (low-cost hardware HSM)
+      Tier 2 — Qualified time-stamp via an accredited trust-service provider (RFC 3161 / eIDAS / jurisdiction-equivalent)
+      Tier 3 — Blockchain anchoring (NOT recommended unless externally required)
+      Selectively applied: contracts, regulatory declarations, high-risk CAPA.
+    when_to_cite:
+      - Designing evidence storage for a regulated context
+      - Establishing immutability commitments in an agent handoff
+      - Demonstrating jurisdiction-specific legal effect (presumption of integrity)
+    normative_anchors:
+      - ISO/IEC 9594-8 (PKI)
+      - RFC 3161 (Time-Stamp Protocol)
+      - eIDAS / FDA 21 CFR Part 11 / equivalent national qualified time-stamp regimes
+      - ISO 13485:2016 §4.2.4 (Control of documents — sector example)
+    source:
+      repo: fc1sec/CertOS-SAGA
+      path: doctrines/37-evidence-integrity-hash.md
+      url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/37-evidence-integrity-hash.md
+
+  token_cost_governance:
+    id: token_cost_governance
+    short_id: D22
+    name: Token & cost governance — 5-level decision routing
+    category: operational
+    purpose: >
+      Treat LLM tokens as a quality resource, not just a technical cost,
+      and route each decision to the cheapest tier that preserves quality.
+    summary: |
+      Five decision levels:
+        0 · Pure rule                     → no LLM (e.g. expired-by-date)
+        1 · Join / metadata               → no LLM (e.g. supplier missing dossier)
+        2 · Short text extraction         → LLM optional (parser preferred)
+        3 · Contextual judgment           → LLM with cached summary
+        4 · Critical dictum               → LLM with human validation
+      Savings: hash cache · persistent doc summary · excerpts before full doc
+      · structured output contract · sampling at high volume.
+      Indicators: % gaps closed without LLM · LLM calls per run · cost per
+      audit package · re-analysis avoided by cache.
+    when_to_cite:
+      - Designing the agent routing layer for any AI/ML feature
+      - Cost-control budgeting for an LLM-backed workflow
+      - Justifying "rule-first, model-second" architecture decisions
+    normative_anchors:
+      - ISO/IEC 42001:2023 §7.1 (Resources for AIMS)
+      - NIST AI RMF — MANAGE function (resource & cost discipline)
+    source:
+      repo: fc1sec/CertOS-SAGA
+      path: doctrines/22-gobernanza-tokens.md
+      url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/22-gobernanza-tokens.md
+
+  agnostic_task_routing:
+    id: agnostic_task_routing
+    short_id: D06
+    name: Agnostic task / language / model routing
+    category: operational
+    purpose: >
+      Always pick the SIMPLEST tool that preserves quality; never marry the
+      architecture to a specific language, LLM, framework, or vendor.
+    summary: |
+      Seven-step decision hierarchy:
+        1. Deterministic rule if it suffices
+        2. Structured query if source allows
+        3. Local parser / extractor if format known
+        4. Cache / index if already analysed
+        5. Small / cheap model if classification or extraction repeatable
+        6. Strong model if ambiguity, reasoning, critical synthesis or audit
+        7. Human if authority, risk, approval or operational change
+      Each routing decision is logged: task, source, chosen method, discarded
+      method, estimated cost, risk, confidence, required validation, test
+      applied, generated output.
+    when_to_cite:
+      - Avoiding premature vendor lock-in on an LLM-backed project
+      - Establishing a fallback chain for tool / model failures
+      - Justifying "humans handle decisions of authority" boundary
+    normative_anchors:
+      - NIST AI RMF — MAP + MEASURE functions (method selection)
+      - ISO 9001:2015 cl. 8.5.1 (Control of production / service provision)
+    source:
+      repo: fc1sec/CertOS-SAGA
+      path: doctrines/06-ruteo-agnostico.md
+      url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/06-ruteo-agnostico.md
+
+  multi_norm_extensibility:
+    id: multi_norm_extensibility
+    short_id: D38
+    name: Multi-norm extensibility via Annex SL High-Level Structure
+    category: operational
+    purpose: >
+      Treat the clause-process-evidence-risk graph as norm-agnostic; one
+      platform can serve any Annex SL management-system standard with zero
+      data migration.
+    summary: |
+      Annex SL fixes the structure of clauses 4-10 across all modern
+      management-system standards: 4 Context · 5 Leadership · 6 Planning
+      · 7 Support · 8 Operation · 9 Performance evaluation · 10 Improvement.
+      Re-use applies to ISO 9001, 13485, 14001, 45001, 27001, 42001, 50001,
+      22301, 22000. The active norm is data (YAML/JSON), not UI components.
+      Each agent is governed by its OWN norm (e.g. internal auditor under
+      ISO 19011; risk under ISO 31000) — the system is its own audit subject.
+    when_to_cite:
+      - Justifying a multi-norm architectural decision (9001 + 42001 + 27001)
+      - Designing a clause-map starting point for a new ISO management system
+      - Avoiding parallel-system duplication in an integrated SGC
+    normative_anchors:
+      - ISO/IEC Directives Part 1 Appendix 2 (Consolidated ISO Supplement) — Annex SL
+      - ISO 19011:2018 (Auditing management systems)
+      - ISO 31000:2018 (Risk management principles)
+    source:
+      repo: fc1sec/CertOS-SAGA
+      path: doctrines/38-multi-norm-extensibility.md
+      url: https://github.com/fc1sec/CertOS-SAGA/blob/main/architecture/10-multi-norm-extensibility.md
+
+  # ---------------------------------------------------------------------------
+  # Methodological layer
+  # ---------------------------------------------------------------------------
+
+  agentic_rdmaicsi:
+    id: agentic_rdmaicsi
+    short_id: D02
+    name: Agentic RDMAICSI — DMAIC extended for living management systems
+    category: methodological
+    purpose: >
+      Extend DMAIC into an eight-phase cycle suited to a live, supervised,
+      learning-oriented management system with agentic support.
+    summary: |
+      R · Recognize the system  — gemba digital, system map, evidence inventory
+      D · Define value, scope, constraint — charter, stakeholders, ISO-process map
+      M · Measure evidence, variation, human capacity — gap matrix, KPIs
+      A · Analyze cause, flow, context, constraints — Ishikawa, 5-Whys, TOC, Cynefin
+      I · Innovate / Implement via experiments — backlog, pilots, evidence
+      C · Control with agents and metrics — dashboards, alerts, audit, CAPA
+      S · Systematize knowledge — knowledge base, procedures, training
+      I · Institutionalize learning — management review, strategic decisions
+      Each cycle logs: problem, process, ISO clause, evidence, owner, human
+      decision, change, metric, escalation criterion, reversal criterion.
+    when_to_cite:
+      - Extending a DMAIC-style improvement cycle to AI-supported operations
+      - Designing the improvement loop for a QMS or AIMS deployment
+    normative_anchors:
+      - ASQ Six Sigma Body of Knowledge (DMAIC baseline)
+      - ISO 9004:2018 (Sustained success — improvement orientation)
+    source:
+      repo: fc1sec/CertOS-SAGA
+      path: doctrines/02-rdmaicsi-agentico.md
+      url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/02-rdmaicsi-agentico.md
+
+  integral_speed:
+    id: integral_speed
+    short_id: D05
+    name: Integral speed model — safe improvement velocity
+    category: methodological
+    purpose: >
+      Reframe "speed of improvement" as the product of agentic capacity,
+      human absorption capacity, and risk control — never raw throughput alone.
+    summary: |
+      Safe velocity = agentic capacity × human capacity × risk control.
+      Three cadences:
+        Fast        — visibility / diagnostic (reports, semaphores, matrices)
+        Controlled  — light controls (conditional fields, checklists)
+        Deliberate  — sensitive changes (hard blocks, permissions, auto-writes)
+      Escalation criterion: pilot must show error reduction + human acceptance
+      + reliable evidence + low operational friction + clear reversibility.
+    when_to_cite:
+      - Setting realistic improvement-rate expectations in a project charter
+      - Justifying a pilot-before-rollout discipline
+      - Refusing "go fast" pressure on irreversible operational changes
+    normative_anchors:
+      - Lean (flow + sustainable pace)
+      - ISO 9001:2015 cl. 6.3 (Changes shall be planned)
+    source:
+      repo: fc1sec/CertOS-SAGA
+      path: doctrines/05-velocidad-integral.md
+      url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/05-velocidad-integral.md

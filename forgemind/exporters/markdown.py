@@ -4,12 +4,19 @@ from pathlib import Path
 
 from forgemind.generators import (
     generate_ai_risk_checklist,
+    generate_aiia_pre_deployment,
+    generate_capability_thresholds,
     generate_context,
+    generate_evidence_scoring,
     generate_issue_template,
     generate_pr_template,
+    generate_skill_card,
+    generate_token_governance,
     generate_tool_permission_matrix,
 )
 from forgemind.schemas.project import ProjectAnalysis
+
+_AI_DOMAINS_FOR_AGENT_GOVERNANCE = {"ai_project", "ai_ml", "llm_agents", "classical_ml"}
 
 
 def export_markdown(analysis: ProjectAnalysis, output_dir: Path) -> Path:
@@ -301,6 +308,21 @@ This output is a readiness aid, not a certification or compliance guarantee.
 
 12. **README_OUTPUT_INDEX.md** - This file
 
+13. **{analysis.metadata.slug}.context.md** — Compact context file for an AI agent
+14. **AI_RISK_CHECKLIST.md** — Domain-specific AI risk readiness checklist
+15. **TOOL_PERMISSION_MATRIX.md** — Allowed / conditional / denied tool permissions
+16. **AGENT_PR_TEMPLATE.md** — PR template scaffolded for the agent
+17. **AGENT_ISSUE_TEMPLATE.md** — Issue template scaffolded for the agent
+
+18. **EVIDENCE_SCORING.md** — Confidence scale (1–5) + 3-tier integrity (hash → signature → time-stamp). Source: CertOS-SAGA D17 + D37.
+19. **TOKEN_COST_GOVERNANCE.md** — 5-level decision routing + 7-step agnostic-routing hierarchy. Source: CertOS-SAGA D22 + D06.
+
+If this project's domain is AI / ML, three additional governance artefacts are emitted:
+
+20. **AIIA_PRE_DEPLOYMENT.md** — 8-section AI Impact Assessment gate. Source: CertOS-SAGA D40 (ISO/IEC 42001 §6.1.4, NIST AI 600-1, EU AI Act Art. 9).
+21. **CAPABILITY_THRESHOLDS.md** — 7 hard HITL thresholds. Source: CertOS-SAGA D41 (Anthropic RSP, EU AI Act Art. 14).
+22. **SKILL_CARD.md** — 12-section machine-readable skill card. Source: CertOS-SAGA D43 (EU AI Act Art. 13, OECD AI Principles).
+
 ## How to Use These Documents
 
 1. **Start with PROJECT_CHARTER.md** to ground the team
@@ -348,5 +370,22 @@ This output is a readiness aid, not a certification or compliance guarantee.
     # Issue Template
     issue_template_output = generate_issue_template(analysis)
     (output_dir / "AGENT_ISSUE_TEMPLATE.md").write_text(issue_template_output)
+
+    # 18-22. v1.3 Constitutional-governance outputs (CertOS-SAGA primitives)
+    # Universal: evidence + cost governance for every project.
+    (output_dir / "EVIDENCE_SCORING.md").write_text(generate_evidence_scoring(analysis))
+    (output_dir / "TOKEN_COST_GOVERNANCE.md").write_text(generate_token_governance(analysis))
+
+    # AI-governance triad: emitted when the domain is AI/ML, defensive-template
+    # mode otherwise (the AIIA generator's introduction notes this explicitly).
+    is_ai_project = analysis.metadata.domain in _AI_DOMAINS_FOR_AGENT_GOVERNANCE
+    if is_ai_project:
+        (output_dir / "AIIA_PRE_DEPLOYMENT.md").write_text(
+            generate_aiia_pre_deployment(analysis)
+        )
+        (output_dir / "CAPABILITY_THRESHOLDS.md").write_text(
+            generate_capability_thresholds(analysis)
+        )
+        (output_dir / "SKILL_CARD.md").write_text(generate_skill_card(analysis))
 
     return output_dir
