@@ -31,3 +31,6 @@ jobs:
 
       - name: Lint with ruff
         run: ruff check .
+
+      - name: ForgeMind self-audit (D02 RDMAICSI loop on ForgeMind itself)
+        run: forgemind self-audit --quiet

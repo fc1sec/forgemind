@@ -21,8 +21,8 @@
 # claims that aren't backed by code are caught by the test suite.
 # =============================================================================
 
-version: "1.0"
-last_updated: "2026-05-13"
+version: "1.1"
+last_updated: "2026-05-16"
 
 coverage_legend:
   covered: >
@@ -104,11 +104,41 @@ disciplines:
         escalate_to: ISO 9001 lead auditor / QMS consultant
 
       iso13485:
-        name: ISO 13485 — Medical Devices QMS
-        coverage: not_covered
-        reason: >
-          Medical device QMS adds design controls, risk management (ISO 14971),
-          and FDA/EMA regulatory submission requirements not present in ISO 9001.
+        name: ISO 13485:2016 — Medical Devices QMS
+        coverage: partial
+        confidence: 0.55
+        variants:
+          - id: hls_annex_sl_clause_map
+            name: HLS clause map (cl. 4-10) shared with ISO 9001
+            source: >
+              ISO/IEC Directives Part 1 Appendix 2 (Consolidated ISO Supplement);
+              CertOS-SAGA D38 multi-norm extensibility (fc1sec/CertOS-SAGA)
+            url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/38-multi-norm-extensibility.md
+            confidence: 0.55
+            production_validated: false
+            since: "ISO 13485:2016 (HLS-aligned)"
+            scope_evidence: >
+              Re-uses ~70% of the ISO 9001 clause graph; ForgeMind ships the
+              HLS skeleton only. The specialised additions (design controls,
+              ISO 14971 risk, FDA QSR / EU MDR submission) require a regulatory
+              affairs specialist.
+            when_to_choose:
+              - Org already runs an ISO 9001 SGC and is expanding to medical devices
+              - You need a starting clause map, NOT a submission-ready dossier
+              - Pattern reuse from a sibling ISO management system is desired
+            pros:
+              - HLS alignment avoids parallel-system duplication
+              - Single document control, single internal audit programme
+              - Shared CAPA / management review with ISO 9001
+            cons:
+              - Design controls, sterile-barrier, biocompatibility NOT covered
+              - ISO 14971 risk management NOT modelled by ForgeMind
+              - FDA 21 CFR 820 / EU MDR submission packs NOT generated
+        boundary_conditions:
+          - ISO 14971 (risk management for medical devices) not modeled
+          - Design controls, design history file (DHF) not modeled
+          - FDA QSR / EU MDR-specific evidence not modeled
+          - Sterile-barrier / biocompatibility evidence not modeled
         escalate_to: Regulatory affairs specialist (FDA QSR / EU MDR)
 
       as9100:
@@ -128,16 +158,181 @@ disciplines:
         escalate_to: Automotive quality consultant
 
       iso14001:
-        name: ISO 14001 — Environmental Management
-        coverage: not_covered
-        reason: Environmental aspects/impacts assessment not modeled
+        name: ISO 14001:2015 — Environmental Management
+        coverage: partial
+        confidence: 0.55
+        variants:
+          - id: hls_annex_sl_clause_map
+            name: HLS clause map (cl. 4-10) shared with ISO 9001
+            source: >
+              ISO/IEC Directives Part 1 Appendix 2; CertOS-SAGA D38 multi-norm
+              extensibility (fc1sec/CertOS-SAGA); ISO 14001:2015 Amd 1:2024
+              (climate action commitment).
+            url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/38-multi-norm-extensibility.md
+            confidence: 0.55
+            production_validated: false
+            since: "ISO 14001:2015 (HLS-aligned)"
+            scope_evidence: >
+              Re-uses the ISO 9001 HLS clause graph. Aspects/impacts assessment,
+              legal-and-other requirements register, lifecycle perspective NOT
+              modeled by ForgeMind — requires environmental specialist.
+            when_to_choose:
+              - Integrated SGC + EMS, sharing leadership, audit and review cycles
+              - You want the HLS scaffold, not specialised environmental tooling
+            pros:
+              - Shared control documental and Revisión por la Dirección
+              - Annex SL alignment simplifies certification scope expansion
+            cons:
+              - Environmental aspects / impacts evaluation NOT modeled
+              - Legal-and-other requirements register NOT generated
+              - Lifecycle perspective (cl. 6.1.2 EMS) NOT modeled
+        boundary_conditions:
+          - Aspects / impacts evaluation methodology not modeled
+          - Climate-action evidence (Amd 1:2024) not modeled
+          - Compliance obligations register not generated
         escalate_to: Environmental management consultant
 
+      iso45001:
+        name: ISO 45001:2018 — Occupational Health & Safety
+        coverage: partial
+        confidence: 0.50
+        variants:
+          - id: hls_annex_sl_clause_map
+            name: HLS clause map (cl. 4-10) shared with ISO 9001
+            source: >
+              ISO/IEC Directives Part 1 Appendix 2; CertOS-SAGA D38 multi-norm
+              extensibility (fc1sec/CertOS-SAGA).
+            url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/38-multi-norm-extensibility.md
+            confidence: 0.50
+            production_validated: false
+            since: "ISO 45001:2018 (HLS-aligned)"
+            scope_evidence: >
+              HLS scaffold only. Hazard identification, worker consultation
+              (cl. 5.4) and incident investigation NOT modeled by ForgeMind.
+            when_to_choose:
+              - Integrated SGC + OH&S sharing leadership and review cycles
+              - You want the HLS scaffold, not a specialised OH&S toolkit
+            pros:
+              - Annex SL alignment with SGC + EMS
+              - Single document control, single management review
+            cons:
+              - Hazard identification + risk assessment NOT modeled
+              - Worker participation / consultation (cl. 5.4) NOT modeled
+              - Incident investigation (cl. 10.2) NOT modeled
+        boundary_conditions:
+          - Hazard identification methodology not modeled
+          - Worker participation evidence not generated
+          - Incident / near-miss investigation flow not modeled
+        escalate_to: Occupational health & safety officer
+
       iso27001:
-        name: ISO/IEC 27001 — Information Security Management
-        coverage: not_covered
-        reason: Annex A controls and risk assessment methodology not modeled
+        name: ISO/IEC 27001:2022 — Information Security Management
+        coverage: partial
+        confidence: 0.55
+        variants:
+          - id: hls_annex_sl_clause_map
+            name: HLS clause map (cl. 4-10) shared with ISO 9001
+            source: >
+              ISO/IEC Directives Part 1 Appendix 2; CertOS-SAGA D38 multi-norm
+              extensibility (fc1sec/CertOS-SAGA).
+            url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/38-multi-norm-extensibility.md
+            confidence: 0.55
+            production_validated: false
+            since: "ISO/IEC 27001:2022 (HLS-aligned)"
+            scope_evidence: >
+              HLS scaffold only. Annex A (93 controls in 2022 edition) and
+              Statement of Applicability (SoA) NOT generated by ForgeMind —
+              they require an ISMS lead auditor / infosec officer.
+            when_to_choose:
+              - Integrated SGC + ISMS sharing leadership, audit and review
+              - You want a clause-map starting point, not full Annex A coverage
+              - Org is small-to-medium and can adopt 27001 incrementally
+            pros:
+              - HLS alignment with SGC reduces audit ceremony
+              - Shared CAPA and risk register with ISO 9001
+              - Honest about Annex A gap rather than fabricating control claims
+            cons:
+              - Annex A (93 controls) NOT modeled — must be authored externally
+              - Statement of Applicability NOT generated
+              - Risk assessment methodology (ISO/IEC 27005 alignment) NOT modeled
+              - SoC 2 / NIST CSF mappings NOT generated
+        boundary_conditions:
+          - Annex A 2022 controls (93) not modeled
+          - Statement of Applicability (SoA) not generated
+          - ISO/IEC 27005 risk methodology not modeled
+          - Cryptographic / network architecture evidence not modeled
         escalate_to: Information security officer / ISMS consultant
+
+      iso42001:
+        name: ISO/IEC 42001:2023 — AI Management System (AIMS)
+        coverage: partial
+        confidence: 0.60
+        variants:
+          - id: hls_annex_sl_clause_map
+            name: HLS clause map (cl. 4-10) shared with ISO 9001
+            source: >
+              ISO/IEC Directives Part 1 Appendix 2; CertOS-SAGA D45 AIMS
+              integrated SGC ISO 42001 (fc1sec/CertOS-SAGA); NIST AI RMF 1.0;
+              EU AI Act Art. 17 (QMS for high-risk AI providers).
+            url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/45-aims-integrado-sgc-iso42001.md
+            confidence: 0.60
+            production_validated: false
+            since: "ISO/IEC 42001:2023 (HLS-aligned)"
+            scope_evidence: >
+              ForgeMind ships HLS scaffold + AIIA template (cl. 6.1.4) +
+              Skill Card template (cl. 7.5) + Capability Thresholds doctrine.
+              External auditor / certification body engagement is OUT of scope.
+            when_to_choose:
+              - Org runs an AI lifecycle and wants AIMS extension of an existing SGC
+              - You want pre-execution AIIA + Skill Card + capability-threshold artifacts
+              - You need a clause-map starting point, not a certification submission
+            pros:
+              - Integrates with ISO 9001 SGC under shared HLS (no parallel system)
+              - AIIA (cl. 6.1.4) generator covers the only 42001 clause without 9001 equivalent
+              - Skill Card (cl. 7.5) aligns with EU AI Act Art. 13 "instructions for use"
+              - Capability Thresholds (cl. 5.3 + 8.6) make Human Oversight (EU AI Act Art. 14) auditable
+            cons:
+              - External certification (audit body + scheme) NOT covered
+              - Annex C controls catalog NOT generated
+              - Sector-specific overlays (health, finance) NOT modeled
+        boundary_conditions:
+          - Annex B (implementation guidance) and Annex C (controls) not modeled
+          - External certification submission package not generated
+          - Sector-specific AIMS overlays (clinical, finance, public sector) not modeled
+        escalate_to: AI Management System lead / ISO/IEC 42001 consultant
+
+      iso22301:
+        name: ISO 22301:2019 — Business Continuity Management
+        coverage: partial
+        confidence: 0.45
+        variants:
+          - id: hls_annex_sl_clause_map
+            name: HLS clause map (cl. 4-10) shared with ISO 9001
+            source: >
+              ISO/IEC Directives Part 1 Appendix 2; CertOS-SAGA D38 multi-norm
+              extensibility (fc1sec/CertOS-SAGA).
+            url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/38-multi-norm-extensibility.md
+            confidence: 0.45
+            production_validated: false
+            since: "ISO 22301:2019 (HLS-aligned)"
+            scope_evidence: >
+              HLS scaffold only. Business Impact Analysis (BIA), recovery
+              objectives (RTO/RPO), test exercises NOT modeled.
+            when_to_choose:
+              - Integrated SGC + BCMS sharing leadership and review cycles
+              - You want HLS scaffolding, not full BIA / exercise programme
+            pros:
+              - Annex SL alignment with SGC
+              - Useful as starting point for degradation-tolerance planning
+            cons:
+              - Business Impact Analysis (cl. 8.2.2) NOT modeled
+              - RTO / RPO methodology NOT modeled
+              - Exercise & test programme (cl. 8.5) NOT modeled
+        boundary_conditions:
+          - BIA methodology not modeled
+          - Recovery objectives (RTO/RPO) not generated
+          - Exercise / test programme not modeled
+        escalate_to: Business continuity manager
 
   software_engineering:
     name: Software Engineering & DevOps
@@ -368,6 +563,73 @@ disciplines:
         coverage: not_covered
         reason: ITIL process catalog (incident, change, problem) not modeled
         escalate_to: ITIL practitioner
+
+      pokayoke_patterns:
+        name: Poka-Yoke (mistake-proofing) patterns
+        coverage: partial
+        confidence: 0.60
+        variants:
+          - id: pokayoke_10_type_taxonomy
+            name: 10-type Poka-Yoke taxonomy (visual → hard-block → learning)
+            source: >
+              Shingo (1986 ZQC); operationalized in CertOS-SAGA D30 odoo-pokayoke-patterns
+              (fc1sec/CertOS-SAGA) for medical-device distribution ERP changes.
+            url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/30-odoo-pokayoke-patterns.md
+            confidence: 0.60
+            production_validated: true
+            since: "Shingo 1986; CertOS-SAGA operationalization 2026"
+            scope_evidence: >
+              10 types (Visual, Sequential, Contextual, Conditional, Automatic,
+              Evidential, Alert, Soft-block, Hard-block, Learning) + 10-point
+              pre-change checklist. Operationalized for Odoo 19 Enterprise QMS.
+            when_to_choose:
+              - About to add a mandatory field or workflow step to an existing ERP/QMS
+              - You want to derive the control from a real event before forcing manual entry
+              - Need a graduated control taxonomy (soft → hard)
+            pros:
+              - Forces event-before-field discipline (avoids fake compliance data)
+              - Graduated controls minimise operator friction
+              - 10-point checklist is auditable
+            cons:
+              - Specialised for ERP / workflow changes; not a generic Lean toolkit
+              - Hard-block patterns require pilot + risk assessment
+        boundary_conditions:
+          - Statistical process control (SPC) integration not modeled
+          - Jidoka (autonomation) hardware patterns not modeled
+        escalate_to: Lean practitioner with mistake-proofing experience
+
+      agnostic_task_routing:
+        name: Agnostic task / language / model routing
+        coverage: partial
+        confidence: 0.65
+        variants:
+          - id: seven_tier_decision_hierarchy
+            name: 7-tier decision hierarchy (rule → cache → small → strong → human)
+            source: >
+              CertOS-SAGA D06 ruteo-agnostico (fc1sec/CertOS-SAGA);
+              augmented with the agnostic-routing chapter of the CertOS methodology bundle.
+            url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/06-ruteo-agnostico.md
+            confidence: 0.65
+            production_validated: true
+            since: "CertOS methodology 2026"
+            scope_evidence: >
+              7-step decision hierarchy + per-task language/model selection table +
+              quality contract template ensuring "optimise cost ≠ degrade criterion".
+            when_to_choose:
+              - About to commit to an LLM vendor / language stack for a workflow
+              - You want explicit reasoning about why a model tier was chosen
+              - Need a fallback chain for tool / model failures
+            pros:
+              - Prevents premature LLM dependence ("rule-first" discipline)
+              - Auditable routing contract per task
+              - Vendor-neutral by design
+            cons:
+              - Requires upfront design effort vs "just call the strongest model"
+              - Quality-contract enforcement is process discipline, not technical
+        boundary_conditions:
+          - Hosted model routing platforms (LiteLLM, OpenRouter) not opinionated on
+          - Cost-vs-quality empirical benchmarking not provided
+        escalate_to: MLOps / platform architect
 
   risk_management:
     name: Risk Management

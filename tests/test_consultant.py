@@ -199,15 +199,21 @@ class TestRefusalProtocol:
         assert session.outcome() == CalibrationOutcome.REFUSED
 
     def test_not_covered_domain_is_refused(self, qms_project: Path):
-        """Choosing a not_covered domain (e.g. ISO 13485) refuses the session."""
+        """Choosing a not_covered domain (e.g. AS9100) refuses the session.
+
+        v1.3.0 note: ISO 13485 was upgraded to `partial` with an HLS Annex SL
+        clause-map variant. AS9100 (aerospace) remains `not_covered` because
+        counterfeit-parts controls and configuration management go beyond
+        the HLS skeleton.
+        """
         session = ConsultantSession(qms_project)
         session.load_project()
         # discipline → quality_management
         turn = session.next_turn()
         session.answer(turn, 0)
-        # domain → iso13485 (not covered)
+        # domain → as9100 (still not covered)
         turn = session.next_turn()
-        idx = next(i for i, opt in enumerate(turn.options) if opt.value == "iso13485")
+        idx = next(i for i, opt in enumerate(turn.options) if opt.value == "as9100")
         session.answer(turn, idx)
         assert session.calibration.refusal_reason is not None
         assert session.outcome() == CalibrationOutcome.REFUSED

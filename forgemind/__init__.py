@@ -1,5 +1,7 @@
 """ForgeMind: MethodOps engine for AI-assisted project execution readiness."""
 
-__version__ = "1.0.0"
+from forgemind.version import __version__
+
 __author__ = "ForgeMind Contributors"
 __license__ = "MIT"
+__all__ = ["__version__"]

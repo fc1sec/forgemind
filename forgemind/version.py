@@ -1,6 +1,6 @@
 """Version management and compatibility tracking for ForgeMind."""
 
-__version__ = "1.2.1"
+__version__ = "1.3.0"
 
 # Breaking changes documentation per major version
 BREAKING_CHANGES = {
@@ -10,12 +10,19 @@ BREAKING_CHANGES = {
         "Removed: old 'legacy_format' parameter from generators",
         "Migration: Run 'forgemind migrate --from 1.2.x --to 2.0.0' to upgrade projects",
     ],
+    "1.3.0": [],  # No breaking changes from 1.2.x; adds outputs + doctrines registry
     "1.2.0": [],  # No breaking changes from 1.1
     "1.1.0": [],  # No breaking changes from 1.0
 }
 
 # Compatibility matrix: which versions work together
 COMPATIBILITY = {
+    "1.3.0": {
+        "works_with_projects": ["1.3.0", "1.2.1", "1.2.0", "1.1.0"],
+        "works_with_outputs": ["1.3.0", "1.2.1", "1.2.0", "1.1.0"],
+        "can_rollback_to": ["1.2.1", "1.2.0", "1.1.0"],
+        "backward_compatible": True,
+    },
     "1.2.1": {
         "works_with_projects": ["1.2.1", "1.2.0", "1.1.0"],
         "works_with_outputs": ["1.2.1", "1.2.0", "1.1.0"],
@@ -37,6 +44,36 @@ COMPATIBILITY = {
 }
 
 RELEASE_NOTES = {
+    "1.3.0": """
+## v1.3.0: Constitutional Governance Release
+
+**What's New:**
+- ✅ Doctrines registry (`forgemind/data/doctrines.yaml`) — 11 named, citable
+  doctrines anchored in CertOS-SAGA (constitutional, operational, methodological)
+- ✅ New CLI: `forgemind doctrines [list|show] [--category]`
+- ✅ Multi-norm Annex SL coverage upgraded — ISO 13485, ISO 14001, ISO 45001,
+  ISO/IEC 27001, ISO/IEC 42001, ISO 22301 move from `not_covered` to `partial`
+  with HLS clause-map variants and honest boundary conditions
+- ✅ New domain: `pokayoke_patterns` (10-type mistake-proofing taxonomy)
+- ✅ New domain: `agnostic_task_routing` (7-tier decision hierarchy)
+- ✅ 5 new output artefacts:
+    · EVIDENCE_SCORING.md     (universal · D17 + D37)
+    · TOKEN_COST_GOVERNANCE.md (universal · D22 + D06)
+    · AIIA_PRE_DEPLOYMENT.md  (AI/ML domains · D40)
+    · CAPABILITY_THRESHOLDS.md (AI/ML domains · D41)
+    · SKILL_CARD.md           (AI/ML domains · D43)
+- ✅ Every new output cites its anchoring doctrine inline with the upstream URL
+
+**Backward Compatibility:**
+- v1.2.x projects: work unchanged
+- v1.1.0 projects: work unchanged
+- Output count grows from 17 → 19 (universal) or 22 (AI/ML domains)
+- No CLI breaking changes; `doctrines` is purely additive
+
+**Sources:**
+- All new doctrines drawn from `fc1sec/CertOS-SAGA` (see ATTRIBUTIONS.md
+  and `forgemind doctrines` for per-entry citations).
+""",
     "1.2.1": """
 ## v1.2.1: Safe Updates Release
 
