@@ -12,7 +12,6 @@ from forgemind.doctrines import get_doctrine_registry
 from forgemind.generators.base import BaseGenerator
 from forgemind.schemas.project import ProjectAnalysis
 
-
 # T1-T7 — the seven hard thresholds from CertOS-SAGA D41
 THRESHOLDS = [
     {

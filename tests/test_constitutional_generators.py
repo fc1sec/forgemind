@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from forgemind.core.analysis import analyze_project
@@ -15,7 +13,6 @@ from forgemind.generators import (
     generate_skill_card,
     generate_token_governance,
 )
-
 
 # ---------------------------------------------------------------------------
 # Project fixtures — one AI/ML project + one non-AI project to verify

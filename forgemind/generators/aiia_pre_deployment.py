@@ -15,7 +15,6 @@ from forgemind.doctrines import get_doctrine_registry
 from forgemind.generators.base import BaseGenerator
 from forgemind.schemas.project import ProjectAnalysis
 
-
 # 12 GenAI risks from NIST AI 600-1 (July 2024 GenAI Profile)
 NIST_GENAI_RISKS = [
     "Confabulation (hallucination)",

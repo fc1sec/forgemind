@@ -12,7 +12,6 @@ from forgemind.doctrines import get_doctrine_registry
 from forgemind.generators.base import BaseGenerator
 from forgemind.schemas.project import ProjectAnalysis
 
-
 DECISION_LEVELS = [
     (0, "Pure rule",
      "Document expired by date · field-presence check · count threshold",

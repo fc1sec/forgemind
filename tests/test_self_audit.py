@@ -4,14 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from forgemind.cli.main import app
+from forgemind.doctrines import get_doctrine_registry
 from forgemind.self_audit import FindingSeverity, run_self_audit
 from forgemind.self_audit.audit import _CHECKS, render_report_markdown
-from forgemind.doctrines import get_doctrine_registry
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 

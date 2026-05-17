@@ -18,10 +18,8 @@ from pathlib import Path
 
 from forgemind.doctrines import (
     Doctrine,
-    DoctrineCategory,
     get_doctrine_registry,
 )
-
 
 # ---------------------------------------------------------------------------
 # Privacy-leak pattern registry

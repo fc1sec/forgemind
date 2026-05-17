@@ -17,7 +17,6 @@ from forgemind.doctrines import get_doctrine_registry
 from forgemind.generators.base import BaseGenerator
 from forgemind.schemas.project import ProjectAnalysis
 
-
 CONFIDENCE_LEVELS = [
     (1, "Manual reference, source unclear",
      "Indication only — not citable as evidence"),

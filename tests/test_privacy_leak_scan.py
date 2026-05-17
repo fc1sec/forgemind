@@ -23,7 +23,6 @@ from forgemind.self_audit.audit import (
     _PRIVACY_SCAN_SKIP_FILES,
 )
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 

@@ -42,6 +42,11 @@ class SkillCardGenerator(BaseGenerator):
                 f"**Doctrine anchor:** {d43.short_id} — {d43.name} "
                 f"([source]({d43.source.url}))"
             )
+        if d39:
+            lines.append(
+                f"**Constitutional anchor:** {d39.short_id} — {d39.name} "
+                f"([source]({d39.source.url}))"
+            )
         lines.extend([
             "",
             "## 1 · Identification",

@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 
 from forgemind.doctrines import (
-    Doctrine,
     DoctrineCategory,
     DoctrineRegistry,
     get_doctrine_registry,
