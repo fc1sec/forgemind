@@ -1,9 +1,14 @@
 """Evidence Confidence Scoring + Integrity matrix generator.
 
 Implements doctrines D17 (CertOS-SAGA confidence scoring 1-5) and D37
-(three-tier integrity: SHA-256 chain, Ed25519 signature, NOM-151/RFC 3161
-time-stamp). Universal — emitted for every project so acceptance criteria
-and risk items can reference a shared evidence scale.
+(three-tier integrity: SHA-256 chain, Ed25519 signature, qualified
+time-stamp via accredited trust-service provider). Universal — emitted
+for every project so acceptance criteria and risk items can reference a
+shared evidence scale.
+
+Jurisdiction note: the qualified-timestamp tier (Tier 2) maps to
+RFC 3161, eIDAS qualified time-stamps, or national equivalents; the
+user picks the regime appropriate to their jurisdiction.
 """
 
 from __future__ import annotations
@@ -39,26 +44,26 @@ INTEGRITY_TIERS = [
     {
         "tier": "Tier 0",
         "name": "SHA-256 hash + linked chain",
-        "cost": "~0 (Python stdlib + git)",
+        "cost": "Near-zero — bundled with the runtime + version control",
         "when": "Day 1 — start of project",
         "covers": "ISO 9001 cl. 7.5 documentation, 9.1 measurement, 10.2 CAPA",
-        "stack": "`hashlib` (Python stdlib), Git",
+        "stack": "Standard-library hashing + version control",
     },
     {
         "tier": "Tier 1",
         "name": "Ed25519 human signature",
-        "cost": "~ 2,000 MXN (Yubikey / HSM hardware)",
+        "cost": "Low — one-time cost of a hardware security key per signer",
         "when": "Day ~21 — once first HITL package needs to be signed",
         "covers": "ISO 9001 cl. 7.5.2, 10.2.1; ISO 13485 cl. 4.1",
-        "stack": "`cryptography` (Python), Yubikey or equivalent HSM",
+        "stack": "Crypto library + hardware key (e.g. FIDO2 / smartcard / HSM)",
     },
     {
         "tier": "Tier 2",
-        "name": "NOM-151 / RFC 3161 time-stamp via accredited PSC",
-        "cost": "~ 15,000 MXN/yr (subscription to PSC)",
+        "name": "Qualified time-stamp via accredited trust-service provider",
+        "cost": "Annual subscription to a qualified trust-service provider",
         "when": "Day 60+ — apply selectively to critical artefacts",
-        "covers": "NOM-151-SCFI-2016, Mexican Código de Comercio Arts. 89-95, FDA 21 CFR Part 11",
-        "stack": "PSC integration (Edicom / PSC World / Cecoban / Interfactura)",
+        "covers": "RFC 3161 baseline; eIDAS qualified time-stamps, FDA 21 CFR Part 11, or national equivalents per jurisdiction",
+        "stack": "Trust-service-provider integration (pick from accredited list in your jurisdiction)",
     },
     {
         "tier": "Tier 3",

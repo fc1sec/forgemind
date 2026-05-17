@@ -13,6 +13,7 @@ from forgemind.self_audit.audit import (
     FindingSeverity,
     SelfAuditReport,
     run_self_audit,
+    scan_for_privacy_leaks,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "FindingSeverity",
     "SelfAuditReport",
     "run_self_audit",
+    "scan_for_privacy_leaks",
 ]

@@ -20,18 +20,18 @@ THRESHOLDS = [
         "name": "Legal signature or institutional representation",
         "examples": [
             "Signing contracts, addenda, or formal letters to clients",
-            "Communications to regulators (FDA, SAT, COFEPRIS, etc.)",
+            "Communications to a regulator or competent authority",
             "Any verbal or written representation before authority",
         ],
         "required_signature": "Executive sponsor / legal proxy",
     },
     {
         "id": "T2",
-        "name": "Decisions affecting end-user or patient safety",
+        "name": "Decisions with safety-critical end-user impact",
         "examples": [
-            "Release or hold of a batch of medical devices",
+            "Release or hold of a regulated product batch",
             "Acceptance or rejection of supplier-delivered product",
-            "Closure of a non-conformity classified as patient-risk",
+            "Closure of a non-conformity classified as end-user-risk",
             "Changes in production, storage or distribution of safety-critical items",
         ],
         "required_signature": "Quality / Process Coordinator + Executive sponsor",
@@ -62,8 +62,8 @@ THRESHOLDS = [
         "name": "Writes to production systems",
         "examples": [
             "Mutating production data in ERP / CRM / ticketing",
-            "Issuing real invoices / CFDI / regulatory filings",
-            "Changing M365 / SharePoint / IdP permissions",
+            "Issuing regulated invoices or regulatory filings",
+            "Changing identity-provider / document-store permissions",
             "Push to `main` of any production repository",
             "Triggering an e-signature workflow with real signers",
         ],

@@ -10,6 +10,7 @@ same output report — so CI gating is reliable.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import date
 from enum import Enum
@@ -20,6 +21,89 @@ from forgemind.doctrines import (
     DoctrineCategory,
     get_doctrine_registry,
 )
+
+
+# ---------------------------------------------------------------------------
+# Privacy-leak pattern registry
+# ---------------------------------------------------------------------------
+# ForgeMind paraphrases doctrines from upstream corpora (today: fc1sec/
+# CertOS-SAGA). Paraphrasing must NOT carry the upstream organisation's
+# private context (people, customers, infra URLs, internal pricing,
+# jurisdiction-specific identifiers tied to one operator).
+#
+# Each pattern is a (label, compiled_regex) pair. A match in any scanned
+# file is a BLOCKER finding against the D39 Constitution value
+# "Transparent attribution" (which forbids leaking what's not ours).
+#
+# Patterns are intentionally narrow: false-positive cost would be high
+# (ForgeMind talks about ISO standards openly). When in doubt, prefer a
+# narrower pattern over a broader one.
+# ---------------------------------------------------------------------------
+
+# Files/dirs the privacy scan deliberately skips:
+#  - this file itself (defines the patterns; would self-match)
+#  - tests/test_privacy_leak_scan.py (asserts the patterns by literal text)
+_PRIVACY_SCAN_SKIP_FILES = {
+    "forgemind/self_audit/audit.py",
+    "tests/test_privacy_leak_scan.py",
+}
+
+# Roots scanned by the privacy check. Pre-existing docs outside these roots
+# (e.g. docs/AI_SYSTEM_TRANSPARENCY.md) are NOT in scope — they were authored
+# by the user pre-v1.3 and may legitimately contain the user's own contact.
+_PRIVACY_SCAN_ROOTS = ("forgemind", "docs/governance", "tests")
+
+_PRIVACY_LEAK_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    # Upstream-organisation identifiers
+    ("upstream organisation name", re.compile(r"\bUlana\b", re.IGNORECASE)),
+    ("upstream people — Navarro", re.compile(r"\bNavarro\b")),
+    ("upstream people — Castro Becerra", re.compile(r"\bCastro\s+Becerra\b")),
+    ("upstream infra — tenant URL", re.compile(r"\bulana\.(odoo\.com|mx)\b", re.IGNORECASE)),
+    ("upstream infra — internal repo", re.compile(r"\bulana[-_](qms|certos)\b", re.IGNORECASE)),
+    # Jurisdiction-specific identifiers tied to a single operator
+    ("jurisdiction-specific regulator (Mexico)", re.compile(r"\b(SEDENA|IMSS|ISSSTE|COFEPRIS)\b")),
+    ("jurisdiction-specific fiscal artefact", re.compile(r"\bCFDI\b|\bNOM-(151|241)\b")),
+    ("upstream vendor short-list", re.compile(r"\b(Edicom|PSC World|Cecoban|Interfactura)\b")),
+    # Internal pricing
+    ("internal cost figure", re.compile(r"\b\d[\d,]*\s*MXN\b")),
+    # Industry-tied phrasings that re-identify the upstream organisation
+    ("industry-tied phrasing", re.compile(r"medical-device distribution", re.IGNORECASE)),
+    # Local filesystem paths from the maintainer's machine
+    ("local fs path leak", re.compile(r"/Users/[A-Za-z0-9_.-]+/")),
+)
+
+
+def _privacy_scan_iter_files(repo_root: Path):
+    """Yield files in scope for the privacy scan."""
+    for rel_root in _PRIVACY_SCAN_ROOTS:
+        root = repo_root / rel_root
+        if not root.exists():
+            continue
+        for path in root.rglob("*"):
+            if not path.is_file():
+                continue
+            if path.suffix not in {".py", ".yaml", ".yml", ".md"}:
+                continue
+            rel = path.relative_to(repo_root).as_posix()
+            if rel in _PRIVACY_SCAN_SKIP_FILES:
+                continue
+            yield path, rel
+
+
+def scan_for_privacy_leaks(repo_root: Path) -> list[tuple[str, str, int, str]]:
+    """Return (label, rel_path, line_no, matched_text) tuples for every leak hit."""
+    hits: list[tuple[str, str, int, str]] = []
+    for path, rel in _privacy_scan_iter_files(repo_root):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        for label, pattern in _PRIVACY_LEAK_PATTERNS:
+            for match in pattern.finditer(text):
+                # Compute line number from match start
+                line_no = text[: match.start()].count("\n") + 1
+                hits.append((label, rel, line_no, match.group(0)))
+    return hits
 
 
 class FindingSeverity(str, Enum):
@@ -449,6 +533,39 @@ def run_self_audit(repo_root: Path | None = None) -> SelfAuditReport:
             )
             continue
         report.findings.extend(check(repo_root, doctrine))
+
+    # Cross-cutting privacy-leak scan (attributed to D39 Constitution value 4
+    # "Transparent attribution" — paraphrasing upstream doctrines without
+    # carrying the upstream organisation's private context).
+    constitution = registry.get("agentic_constitution")
+    if constitution is not None:
+        hits = scan_for_privacy_leaks(repo_root)
+        if hits:
+            for label, rel_path, line_no, matched in hits:
+                report.findings.append(
+                    Finding(
+                        constitution.short_id,
+                        constitution.name,
+                        FindingSeverity.BLOCKER,
+                        f"Privacy-leak pattern detected ({label}): '{matched}'",
+                        evidence_path=f"{rel_path}:{line_no}",
+                        remediation=(
+                            "Paraphrase or replace with a jurisdiction- / "
+                            "organisation-neutral equivalent. Upstream attribution "
+                            "to the source REPO is allowed; leaking the upstream "
+                            "operator's people / customers / pricing / infra is not."
+                        ),
+                    )
+                )
+        else:
+            report.findings.append(
+                Finding(
+                    constitution.short_id,
+                    constitution.name,
+                    FindingSeverity.INFO,
+                    "Privacy-leak scan clean: no upstream-operator identifiers in scanned roots.",
+                )
+            )
 
     return report
 

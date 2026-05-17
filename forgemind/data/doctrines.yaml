@@ -58,7 +58,7 @@ doctrines:
       repo: fc1sec/CertOS-SAGA
       path: doctrines/39-constitucion-agentica.md
       url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/39-constitucion-agentica.md
-      license_note: Original Ulana drafting; CertOS-SAGA repo is the reference corpus.
+      license_note: Doctrine paraphrased from CertOS-SAGA; see source URL for the canonical text.
 
   aiia_pre_deployment:
     id: aiia_pre_deployment
@@ -88,7 +88,7 @@ doctrines:
       repo: fc1sec/CertOS-SAGA
       path: doctrines/40-aiia-previo-despliegue-skill.md
       url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/40-aiia-previo-despliegue-skill.md
-      license_note: Original Ulana drafting.
+      license_note: Doctrine paraphrased from CertOS-SAGA; see source URL for the canonical text.
 
   capability_thresholds:
     id: capability_thresholds
@@ -102,9 +102,9 @@ doctrines:
     summary: |
       Seven hard thresholds (T1-T7), each triggering a HITL package automatically:
         T1 · Legal signature or institutional representation
-        T2 · Decisions affecting end-user / patient safety
+        T2 · Decisions with safety-critical end-user impact
         T3 · Formal closure of CAPA, NC, or audit finding
-        T4 · Approval / publication of a controlled SGC document
+        T4 · Approval / publication of a controlled QMS document
         T5 · Write operations to production systems
         T6 · Acceptance of high or critical risk
         T7 · Institutional external communication
@@ -123,7 +123,7 @@ doctrines:
       repo: fc1sec/CertOS-SAGA
       path: doctrines/41-capability-thresholds.md
       url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/41-capability-thresholds.md
-      license_note: Original Ulana drafting.
+      license_note: Doctrine paraphrased from CertOS-SAGA; see source URL for the canonical text.
 
   skill_card_mandatory:
     id: skill_card_mandatory
@@ -156,7 +156,7 @@ doctrines:
       repo: fc1sec/CertOS-SAGA
       path: doctrines/43-skill-card-obligatoria.md
       url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/43-skill-card-obligatoria.md
-      license_note: Original Ulana drafting.
+      license_note: Doctrine paraphrased from CertOS-SAGA; see source URL for the canonical text.
 
   aims_integrated_sgc:
     id: aims_integrated_sgc
@@ -186,7 +186,7 @@ doctrines:
       repo: fc1sec/CertOS-SAGA
       path: doctrines/45-aims-integrado-sgc-iso42001.md
       url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/45-aims-integrado-sgc-iso42001.md
-      license_note: Original Ulana drafting.
+      license_note: Doctrine paraphrased from CertOS-SAGA; see source URL for the canonical text.
 
   # ---------------------------------------------------------------------------
   # Operational layer
@@ -231,21 +231,20 @@ doctrines:
       Cryptographic integrity for evidence in three austere tiers, distinguishing
       real operational evidence from agent-generated narrative.
     summary: |
-      Tier 0 — SHA-256 hash + linked chain (day 1, cost ≈ 0)
-      Tier 1 — Ed25519 human signature (day 21, ≈ 2k MXN, Yubikey/HSM)
-      Tier 2 — NOM-151 / RFC 3161 time-stamp via accredited PSC (day 60+, ≈ 15k MXN/yr)
+      Tier 0 — SHA-256 hash + linked chain (day 1, near-zero cost)
+      Tier 1 — Ed25519 human signature (low-cost hardware HSM)
+      Tier 2 — Qualified time-stamp via an accredited trust-service provider (RFC 3161 / eIDAS / jurisdiction-equivalent)
       Tier 3 — Blockchain anchoring (NOT recommended unless externally required)
       Selectively applied: contracts, regulatory declarations, high-risk CAPA.
     when_to_cite:
       - Designing evidence storage for a regulated context
       - Establishing immutability commitments in an agent handoff
-      - Demonstrating Mexican legal effect via NOM-151 (presumption of integrity)
+      - Demonstrating jurisdiction-specific legal effect (presumption of integrity)
     normative_anchors:
       - ISO/IEC 9594-8 (PKI)
-      - NOM-151-SCFI-2016 (Mexico)
       - RFC 3161 (Time-Stamp Protocol)
-      - FDA 21 CFR Part 11 (Subpart B records, Subpart C signatures)
-      - ISO 13485:2016 §4.2.4 (Control of documents for medical devices)
+      - eIDAS / FDA 21 CFR Part 11 / equivalent national qualified time-stamp regimes
+      - ISO 13485:2016 §4.2.4 (Control of documents — sector example)
     source:
       repo: fc1sec/CertOS-SAGA
       path: doctrines/37-evidence-integrity-hash.md

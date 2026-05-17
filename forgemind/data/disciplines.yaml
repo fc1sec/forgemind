@@ -573,7 +573,7 @@ disciplines:
             name: 10-type Poka-Yoke taxonomy (visual → hard-block → learning)
             source: >
               Shingo (1986 ZQC); operationalized in CertOS-SAGA D30 odoo-pokayoke-patterns
-              (fc1sec/CertOS-SAGA) for medical-device distribution ERP changes.
+              (fc1sec/CertOS-SAGA) for ERP / QMS change discipline.
             url: https://github.com/fc1sec/CertOS-SAGA/blob/main/doctrines/30-odoo-pokayoke-patterns.md
             confidence: 0.60
             production_validated: true
@@ -581,7 +581,7 @@ disciplines:
             scope_evidence: >
               10 types (Visual, Sequential, Contextual, Conditional, Automatic,
               Evidential, Alert, Soft-block, Hard-block, Learning) + 10-point
-              pre-change checklist. Operationalized for Odoo 19 Enterprise QMS.
+              pre-change checklist. Operationalized for ERP-backed QMS settings.
             when_to_choose:
               - About to add a mandatory field or workflow step to an existing ERP/QMS
               - You want to derive the control from a real event before forcing manual entry
